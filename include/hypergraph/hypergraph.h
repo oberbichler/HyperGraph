@@ -356,7 +356,7 @@ public:     // methods
                     } else if (e1.to() == e2.to()) {
                         m_self_second_order_edges[e1.to()] += 2.0 * a * vertex.second_order_weight();
                     } else {
-                        const auto [min, max] = std::minmax(e1.to(), e2.to())
+                        const auto [min, max] = std::minmax(e1.to(), e2.to());
                         m_second_order_edges[max][min] = a * vertex.second_order_weight();
                     }
                 }
