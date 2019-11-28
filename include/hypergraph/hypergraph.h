@@ -75,10 +75,23 @@ public:     // python
             // read-only properties
             .def_property_readonly("_id", &Type::id)
             // operators
+            .def(-py::self)
             .def(py::self + py::self)
             .def(py::self + double())
             .def(double() + py::self)
             .def(py::self += py::self)
+            .def(py::self - py::self)
+            .def(py::self - double())
+            .def(double() - py::self)
+            .def(py::self -= py::self)
+            .def(py::self * py::self)
+            .def(py::self * double())
+            .def(double() * py::self)
+            .def(py::self *= py::self)
+            .def(py::self / py::self)
+            .def(py::self / double())
+            .def(double() / py::self)
+            .def(py::self /= py::self)
         ;
     }
 };
@@ -286,7 +299,7 @@ public:     // methods
 
     void propagate_adjoint()
     {
-        if (length(m_vertices) > m_second_order_edges.size()) {
+        if (length(m_vertices) > length(m_second_order_edges)) {
             m_second_order_edges.resize(m_vertices.size());
         } else {
             for (index i = 0; i < length(m_second_order_edges); i++) {
@@ -396,6 +409,15 @@ public:     // python
     }
 };
 
+inline Variable operator-(const Variable& x)
+{
+    HyperGraph* graph = x.graph();
+
+    Variable ret = graph->new_variable(-x.value());
+    graph->add_edge(ret, x, -1.0, 0.0);
+    return ret;
+}
+
 inline Variable operator+(const Variable& lhs, const Variable& rhs)
 {
     HyperGraph* graph = lhs.graph();
@@ -428,6 +450,124 @@ inline Variable& operator+=(Variable& lhs, const Variable& rhs)
 inline Variable& operator+=(Variable& lhs, const double rhs)
 {
     lhs = lhs + rhs;
+    return lhs;
+}
+
+inline Variable operator-(const Variable& lhs, const Variable& rhs)
+{
+    HyperGraph* graph = lhs.graph();
+
+    Variable ret = graph->new_variable(lhs.value() - rhs.value());
+    graph->add_edge(ret, lhs, rhs, 1.0, -1.0, 0.0);
+    return ret;
+}
+
+inline Variable operator-(const Variable& lhs, const double rhs)
+{
+    HyperGraph* graph = lhs.graph();
+
+    Variable ret = graph->new_variable(lhs.value() - rhs);
+    graph->add_edge(ret, lhs, 1.0, double(0.0));
+    return ret;
+}
+
+inline Variable operator-(const double lhs, const Variable& rhs)
+{
+    HyperGraph* graph = rhs.graph();
+
+    Variable ret = graph->new_variable(lhs - rhs.value());
+    graph->add_edge(ret, rhs, double(-1.0), double(0.0));
+    return ret;
+}
+
+inline Variable& operator-=(Variable& lhs, const Variable& rhs)
+{
+    lhs = lhs - rhs;
+    return lhs;
+}
+
+inline Variable& operator-=(Variable& lhs, const double rhs)
+{
+    lhs = lhs - rhs;
+    return lhs;
+}
+
+inline Variable operator*(const Variable &lhs, const Variable &rhs)
+{
+    HyperGraph* graph = lhs.graph();
+
+    Variable ret = graph->new_variable(lhs.value() * rhs.value());
+    graph->add_edge(ret, lhs, rhs, rhs.value(), lhs.value(), 1.0);
+    return ret;
+}
+
+inline Variable operator*(const Variable &lhs, const double rhs)
+{
+    HyperGraph* graph = lhs.graph();
+
+    Variable ret = graph->new_variable(lhs.value() * rhs);
+    graph->add_edge(ret, lhs, rhs, double(0.0));
+    return ret;
+}
+
+inline Variable operator*(const double lhs, const Variable &rhs)
+{
+    return rhs * lhs;
+}
+
+inline Variable& operator*=(Variable &lhs, const Variable &rhs)
+{
+    lhs = lhs * rhs;
+    return lhs;
+}
+
+inline Variable& operator*=(Variable &lhs, const double rhs)
+{
+    lhs = lhs * rhs;
+    return lhs;
+}
+
+inline Variable inv(const Variable &x)
+{
+    HyperGraph* graph = x.graph();
+
+    double inv_x = 1.0 / x.value();
+    double inv_x_sq = inv_x * inv_x;
+    double inv_x_cu = inv_x_sq * inv_x;
+    Variable ret = graph->new_variable(inv_x);
+    graph->add_edge(ret, x, -inv_x_sq, 2.0 * inv_x_cu);
+    return ret;
+}
+
+inline double inv(const double x)
+{
+    return 1.0 / x;
+}
+
+inline Variable operator/(const Variable &lhs, const Variable &rhs)
+{
+    return lhs * inv(rhs);
+}
+
+inline Variable operator/(const Variable &lhs, const double rhs)
+{
+    return lhs * inv(rhs);
+}
+
+inline Variable operator/(const double lhs, const Variable &rhs)
+{
+    return lhs * inv(rhs);
+}
+
+inline Variable& operator/=(Variable &lhs, const Variable &rhs)
+{
+    lhs = lhs / rhs;
+    return lhs;
+}
+
+inline Variable& operator/=(Variable &lhs, const double rhs)
+{
+    lhs = lhs / rhs;
     return lhs;
 }
 
