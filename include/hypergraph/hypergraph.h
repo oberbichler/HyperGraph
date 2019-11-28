@@ -4,6 +4,7 @@
 
 #include <tsl/robin_map.h>
 
+#include <algorithm>
 #include <cstddef>
 #include <memory>
 
@@ -271,7 +272,8 @@ public:     // methods
         if (i.id() == j.id()) {
             return m_self_second_order_edges[i.id()];
         } else {
-            return m_second_order_edges[std::max(i.id(), j.id())][std::min(i.id(), j.id())];
+            const auto [min, max] = std::minmax(i.id(), j.id())
+            return m_second_order_edges[max][min];
         }
     }
 
@@ -293,7 +295,8 @@ public:     // methods
         if (foEdge.to() == soEdge.to()) {
             m_self_second_order_edges[foEdge.to()] += 2 * foEdge.weight() * soEdge.weight();
         } else {
-            m_second_order_edges[std::max(foEdge.to(), soEdge.to())].insert({std::min(foEdge.to(), soEdge.to()), foEdge.weight() * soEdge.weight()});
+            const auto [min, max] = std::minmax(foEdge.to(), soEdge.to())
+            m_second_order_edges[max][min] = foEdge.weight() * soEdge.weight();
         }
     }
 
@@ -339,8 +342,8 @@ public:     // methods
                     if (e1.to() == e2.to()) {
                         m_self_second_order_edges[e2.to()] += 2.0 * e1.weight() * e2.weight() * m_self_second_order_edges[vid];
                     } else {
-                        m_second_order_edges[std::max(e1.to(), e2.to())].insert({std::min(e1.to(), e2.to()), 
-                                                    e1.weight() * e2.weight() * m_self_second_order_edges[vid]});
+                        const auto [min, max] = std::minmax(e1.to(), e2.to())
+                        m_second_order_edges[max][min] = e1.weight() * e2.weight() * m_self_second_order_edges[vid];
                     }
                 }
             }
@@ -353,7 +356,8 @@ public:     // methods
                     } else if (e1.to() == e2.to()) {
                         m_self_second_order_edges[e1.to()] += 2.0 * a * vertex.second_order_weight();
                     } else {
-                        m_second_order_edges[std::max(e1.to(), e2.to())].insert({std::min(e1.to(), e2.to()), a * vertex.second_order_weight()});
+                        const auto [min, max] = std::minmax(e1.to(), e2.to())
+                        m_second_order_edges[max][min] = a * vertex.second_order_weight();
                     }
                 }
 
