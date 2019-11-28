@@ -84,6 +84,10 @@ public:     // python
             .def(py::self - double())
             .def(double() - py::self)
             .def(py::self -= py::self)
+            .def(py::self * py::self)
+            .def(py::self * double())
+            .def(double() * py::self)
+            .def(py::self *= py::self)
         ;
     }
 };
@@ -481,6 +485,41 @@ inline Variable& operator-=(Variable& lhs, const Variable& rhs)
 inline Variable& operator-=(Variable& lhs, const double rhs)
 {
     lhs = lhs - rhs;
+    return lhs;
+}
+
+inline Variable operator*(const Variable &lhs, const Variable &rhs)
+{
+    HyperGraph* graph = lhs.graph();
+
+    Variable ret = graph->new_variable(lhs.value() * rhs.value());
+    graph->add_edge(ret, lhs, rhs, rhs.value(), lhs.value(), 1.0);
+    return ret;
+}
+
+inline Variable operator*(const Variable &lhs, const double rhs)
+{
+    HyperGraph* graph = lhs.graph();
+
+    Variable ret = graph->new_variable(lhs.value() * rhs);
+    graph->add_edge(ret, lhs, rhs, double(0.0));
+    return ret;
+}
+
+inline Variable operator*(const double lhs, const Variable &rhs)
+{
+    return rhs * lhs;
+}
+
+inline Variable& operator*=(Variable &lhs, const Variable &rhs)
+{
+    lhs = lhs * rhs;
+    return lhs;
+}
+
+inline Variable& operator*=(Variable &lhs, const double rhs)
+{
+    lhs = lhs * rhs;
     return lhs;
 }
 
