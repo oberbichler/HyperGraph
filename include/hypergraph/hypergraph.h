@@ -88,6 +88,10 @@ public:     // python
             .def(py::self * double())
             .def(double() * py::self)
             .def(py::self *= py::self)
+            .def(py::self / py::self)
+            .def(py::self / double())
+            .def(double() / py::self)
+            .def(py::self /= py::self)
         ;
     }
 };
@@ -520,6 +524,50 @@ inline Variable& operator*=(Variable &lhs, const Variable &rhs)
 inline Variable& operator*=(Variable &lhs, const double rhs)
 {
     lhs = lhs * rhs;
+    return lhs;
+}
+
+inline Variable inv(const Variable &x)
+{
+    HyperGraph* graph = x.graph();
+
+    double inv_x = 1.0 / x.value();
+    double inv_x_sq = inv_x * inv_x;
+    double inv_x_cu = inv_x_sq * inv_x;
+    Variable ret = graph->new_variable(inv_x);
+    graph->add_edge(ret, x, -inv_x_sq, 2.0 * inv_x_cu);
+    return ret;
+}
+
+inline double inv(const double x)
+{
+    return 1.0 / x;
+}
+
+inline Variable operator/(const Variable &lhs, const Variable &rhs)
+{
+    return lhs * inv(rhs);
+}
+
+inline Variable operator/(const Variable &lhs, const double rhs)
+{
+    return lhs * inv(rhs);
+}
+
+inline Variable operator/(const double lhs, const Variable &rhs)
+{
+    return lhs * inv(rhs);
+}
+
+inline Variable& operator/=(Variable &lhs, const Variable &rhs)
+{
+    lhs = lhs / rhs;
+    return lhs;
+}
+
+inline Variable& operator/=(Variable &lhs, const double rhs)
+{
+    lhs = lhs / rhs;
     return lhs;
 }
 
