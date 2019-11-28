@@ -272,7 +272,7 @@ public:     // methods
         if (i.id() == j.id()) {
             return m_self_second_order_edges[i.id()];
         } else {
-            const auto [min, max] = std::minmax(i.id(), j.id())
+            const auto [min, max] = std::minmax(i.id(), j.id());
             return m_second_order_edges[max][min];
         }
     }
@@ -295,7 +295,7 @@ public:     // methods
         if (foEdge.to() == soEdge.to()) {
             m_self_second_order_edges[foEdge.to()] += 2 * foEdge.weight() * soEdge.weight();
         } else {
-            const auto [min, max] = std::minmax(foEdge.to(), soEdge.to())
+            const auto [min, max] = std::minmax(foEdge.to(), soEdge.to());
             m_second_order_edges[max][min] = foEdge.weight() * soEdge.weight();
         }
     }
@@ -342,7 +342,7 @@ public:     // methods
                     if (e1.to() == e2.to()) {
                         m_self_second_order_edges[e2.to()] += 2.0 * e1.weight() * e2.weight() * m_self_second_order_edges[vid];
                     } else {
-                        const auto [min, max] = std::minmax(e1.to(), e2.to())
+                        const auto [min, max] = std::minmax(e1.to(), e2.to());
                         m_second_order_edges[max][min] = e1.weight() * e2.weight() * m_self_second_order_edges[vid];
                     }
                 }
