@@ -10,7 +10,7 @@ PYBIND11_MODULE(hypergraph, m) {
     m.doc() = "HyperJet by Thomas Oberbichler";
     m.attr("__author__") = "Thomas Oberbichler";
     m.attr("__copyright__") = "Copyright (c) 2019, Thomas Oberbichler";
-    m.attr("__version__") = "dev";
+    m.attr("__version__") = HYPERGRAPH_VERSION;
     m.attr("__email__") = "thomas.oberbichler@gmail.com";
     m.attr("__status__") = "Development";
 
