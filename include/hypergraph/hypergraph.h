@@ -75,6 +75,7 @@ public:     // python
             // read-only properties
             .def_property_readonly("_id", &Type::id)
             // operators
+            .def(-py::self)
             .def(py::self + py::self)
             .def(py::self + double())
             .def(double() + py::self)
@@ -395,6 +396,15 @@ public:     // python
         ;
     }
 };
+
+inline Variable operator-(const Variable& x)
+{
+    HyperGraph* graph = x.graph();
+
+    Variable ret = graph->new_variable(-x.value());
+    graph->add_edge(ret, x, -1.0, 0.0);
+    return ret;
+}
 
 inline Variable operator+(const Variable& lhs, const Variable& rhs)
 {
