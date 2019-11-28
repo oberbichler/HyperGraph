@@ -21,7 +21,7 @@ If you use HyperGraph, please refer to the official GitHub repository:
 ```
 @misc{HyperJet,
   author = "Thomas Oberbichler",
-  title = "HyperJet",
-  howpublished = "\url{http://github.com/oberbichler/HyperJet}",
+  title = "HyperGraph",
+  howpublished = "\url{http://github.com/oberbichler/HyperGraph}",
 }
 ```
