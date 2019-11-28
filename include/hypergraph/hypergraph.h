@@ -286,7 +286,7 @@ public:     // methods
 
     void propagate_adjoint()
     {
-        if (length(m_vertices) > m_second_order_edges.size()) {
+        if (length(m_vertices) > length(m_second_order_edges)) {
             m_second_order_edges.resize(m_vertices.size());
         } else {
             for (index i = 0; i < length(m_second_order_edges); i++) {
