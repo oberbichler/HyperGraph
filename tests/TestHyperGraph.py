@@ -176,6 +176,8 @@ class TestHyperGraph(unittest.TestCase):
         assert_array_almost_equal(g, [0, -5/36])
         assert_array_almost_equal(h, [[0, 0], [0, 5/108]])
 
+    # trigonometry
+
     def test_cos(self):
         graph = hg.HyperGraph()
 
