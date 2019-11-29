@@ -298,6 +298,7 @@ private: // variables
     std::vector<double> m_self_second_order_edges;
 
 public: // constructor
+
 public: // methods
     Variable new_variable(const double value)
     {

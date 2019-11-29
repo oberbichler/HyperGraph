@@ -248,5 +248,6 @@ class TestHyperGraph(unittest.TestCase):
         assert_array_almost_equal(g, [16/25, 0])
         assert_array_almost_equal(h, [[-384/625, 0], [0, 0]])
 
+
 if __name__ == '__main__':
     unittest.main()
