@@ -333,14 +333,22 @@ public: // methods
     inline double second_order_edge(T a, T b) const
     {
         const auto [min, max] = std::minmax(vertex_id(a), vertex_id(b));
-        return m_second_order_edges[max].at(min);
+        const auto it = m_second_order_edges[max].find(min);
+        if (it == m_second_order_edges.end()) {
+            return 0.0;
+        }
+        return it->second;
     }
 
     template <typename T>
     inline double& second_order_edge(T a, T b)
     {
         const auto [min, max] = std::minmax(vertex_id(a), vertex_id(b));
-        return m_second_order_edges[max][min];
+        const auto it = m_second_order_edges[max].find(min);
+        if (it == m_second_order_edges.end()) {
+            return 0.0;
+        }
+        return it->second;
     }
 
     void set_adjoint(const Variable& v, const double adj)
