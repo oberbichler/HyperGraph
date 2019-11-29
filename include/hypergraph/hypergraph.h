@@ -426,6 +426,19 @@ public: // methods
         }
     }
 
+    void clear()
+    {
+        std::fill(m_self_second_order_edges.begin(), m_self_second_order_edges.end(), 0.0);
+
+        for (auto& tree : m_second_order_edges) {
+            tree.clear();
+        }
+
+        for (auto& it : m_vertices) {
+            it.set_weight(0.0);
+        }
+    }
+
     void propagate_adjoint()
     {
         if (length(m_vertices) > length(m_second_order_edges)) {
@@ -496,6 +509,7 @@ public: // methods
 
     std::pair<Eigen::VectorXd, Eigen::MatrixXd> derive(const Variable expression, const std::vector<Variable>& variables)
     {
+        clear();
         set_adjoint(expression, 1.0);
         propagate_adjoint();
 
