@@ -394,6 +394,28 @@ class TestHyperGraph(unittest.TestCase):
                                       [0, 0, 0, 0,  14*np.sqrt(2/3)/9, -7*np.sqrt(2/3)/9],
                                       [0, 0, 0, 0,  0, 7/(9*np.sqrt(6))]])
 
+    def test_full_hessian(self):
+        graph = hg.HyperGraph()
+
+        ax, ay, az, bx, by, bz = graph.new_variables([1, 2, 3, 4, 5, 6])
+
+        a = np.array([ax, ay, az])
+        b = np.array([bx, by, bz])
+
+        result = np.linalg.norm(np.cross(a, b))
+
+        graph.compute(result)
+
+        h = graph.h([ax, ay, az, bx, by, bz], full=True)
+
+        assert_array_almost_equal(np.triu(h), [[77/(18*np.sqrt(6)), -77/(9*np.sqrt(6)), 77/(18*np.sqrt(6)), -8*np.sqrt(2/3)/9,  23/(9*np.sqrt(6)), -17*np.sqrt(2/3)/9],
+                                               [0, 77*np.sqrt(2/3)/9, -77/(9*np.sqrt(6)), 41/(9*np.sqrt(6)), -32*np.sqrt(2/3)/9, 23/(9*np.sqrt(6))],
+                                               [0, 0, 77/(18*np.sqrt(6)), np.sqrt(2/3)/9, 41/(9*np.sqrt(6)), -8*np.sqrt(2/3)/9],
+                                               [0, 0, 0, 7/(9*np.sqrt(6)),  -7*np.sqrt(2/3)/9, 7/(9*np.sqrt(6))],
+                                               [0, 0, 0, 0,  14*np.sqrt(2/3)/9, -7*np.sqrt(2/3)/9],
+                                               [0, 0, 0, 0,  0, 7/(9*np.sqrt(6))]])
+        assert_array_almost_equal(np.tril(h).T, np.triu(h))
+
 
 if __name__ == '__main__':
     unittest.main()
