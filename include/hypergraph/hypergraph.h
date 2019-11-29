@@ -342,8 +342,7 @@ public: // methods
     template <typename T>
     inline double second_order_edge(T a, T b) const
     {
-        const auto min = std::min(vertex_id(a), vertex_id(b));
-        const auto max = std::max(vertex_id(a), vertex_id(b));
+        const auto [min, max] = std::minmax<index>(vertex_id(a), vertex_id(b));
         const auto it = m_second_order_edges[max].find(min);
         if (it == m_second_order_edges[max].end()) {
             return 0.0;
@@ -354,8 +353,7 @@ public: // methods
     template <typename T>
     inline double& second_order_edge(T a, T b)
     {
-        const auto min = std::min(vertex_id(a), vertex_id(b));
-        const auto max = std::max(vertex_id(a), vertex_id(b));
+        const auto [min, max] = std::minmax<index>(vertex_id(a), vertex_id(b));
         return m_second_order_edges[max][min];
     }
 
