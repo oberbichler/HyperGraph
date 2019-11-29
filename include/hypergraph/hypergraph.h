@@ -587,7 +587,9 @@ public: // python
             .def("new_variables", &Type::new_variables, "values"_a)
             .def("compute", &Type::compute, "expression"_a)
             .def("g", py::overload_cast<const std::vector<Variable>&>(&Type::g, py::const_), "variables"_a)
-            .def("h", py::overload_cast<const std::vector<Variable>&, const bool>(&Type::h, py::const_), "variables"_a, "full"_a=false);
+            .def("g", py::overload_cast<const std::vector<Variable>&, Eigen::Ref<Eigen::VectorXd>>(&Type::g, py::const_), "variables"_a, "out"_a)
+            .def("h", py::overload_cast<const std::vector<Variable>&, const bool>(&Type::h, py::const_), "variables"_a, "full"_a = false)
+            .def("h", py::overload_cast<const std::vector<Variable>&, Eigen::Ref<Eigen::MatrixXd>, const bool>(&Type::h, py::const_), "variables"_a, "out"_a, "full"_a = false);
     }
 };
 
