@@ -20,27 +20,29 @@ index length(const TContainer& container)
 
 class HyperGraph;
 
-class Variable
-{
-private:    // info
+class Variable {
+private: // info
     using Type = Variable;
     inline static const std::string s_name = "Variable";
 
-private:    // variables
+private: // variables
     HyperGraph* m_graph;
     index m_id;
     double m_value;
 
-public:     // constructor
+public: // constructor
     Variable()
     {
     }
 
-    Variable(HyperGraph* graph, const double value, const index id) : m_graph(graph), m_value(value), m_id(id)
+    Variable(HyperGraph* graph, const double value, const index id)
+        : m_graph(graph)
+        , m_value(value)
+        , m_id(id)
     {
     }
 
-public:     // methods
+public: // methods
     index id() const
     {
         return m_id;
@@ -61,7 +63,7 @@ public:     // methods
         m_value = value;
     }
 
-public:     // python
+public: // python
     template <typename TModule>
     static void register_python(TModule& m)
     {
@@ -92,30 +94,30 @@ public:     // python
             .def(py::self / py::self)
             .def(py::self / double())
             .def(double() / py::self)
-            .def(py::self /= py::self)
-        ;
+            .def(py::self /= py::self);
     }
 };
 
-class Edge
-{
-private:    // types
+class Edge {
+private: // types
     using Type = Edge;
 
-private:    // variables
+private: // variables
     index m_to;
     double m_weight;
 
-public:     // constructors
+public: // constructors
     Edge()
     {
     }
 
-    Edge(const index to, const double w = 0.0) : m_to(to), m_weight(w)
+    Edge(const index to, const double w = 0.0)
+        : m_to(to)
+        , m_weight(w)
     {
     }
 
-public:     // methods
+public: // methods
     index to() const
     {
         return m_to;
@@ -137,24 +139,28 @@ public:     // methods
     }
 };
 
-class Vertex
-{
-private:    // types
+class Vertex {
+private: // types
     using Type = Vertex;
 
-private:    // variables
+private: // variables
     index m_id;
     Edge m_edge1;
     Edge m_edge2;
     double m_weight;
     double m_second_order_weight;
 
-public:     // constructor
-    Vertex(const index id) : m_id(id), m_edge1(id), m_edge2(id), m_weight(0), m_second_order_weight(0)
+public: // constructor
+    Vertex(const index id)
+        : m_id(id)
+        , m_edge1(id)
+        , m_edge2(id)
+        , m_weight(0)
+        , m_second_order_weight(0)
     {
     }
 
-public:     // methods
+public: // methods
     index id() const
     {
         return m_id;
@@ -216,19 +222,17 @@ public:     // methods
     }
 };
 
-class HyperGraph
-{
-private:    // types
+class HyperGraph {
+private: // types
     using Type = HyperGraph;
 
-private:    // variables
+private: // variables
     std::vector<Vertex> m_vertices;
     std::vector<tsl::robin_map<index, double>> m_second_order_edges;
     std::vector<double> m_self_second_order_edges;
 
-public:     // constructor
-
-public:     // methods
+public: // constructor
+public: // methods
     Variable new_variable(const double value)
     {
         const index id = length(m_vertices);
@@ -263,13 +267,13 @@ public:     // methods
     template <typename T>
     inline index vertex_id(const T& item)
     {
-        if constexpr(std::is_same<T, index>::value) {
+        if constexpr (std::is_same<T, index>::value) {
             return item;
         }
-        if constexpr(std::is_same<T, Variable>::value) {
+        if constexpr (std::is_same<T, Variable>::value) {
             return item.id();
         }
-        if constexpr(std::is_same<T, Edge>::value) {
+        if constexpr (std::is_same<T, Edge>::value) {
             return item.to();
         }
     }
@@ -432,7 +436,7 @@ public:     // methods
         return {g, h};
     }
 
-public:     // python
+public: // python
     template <typename TModule>
     static void register_python(TModule& m)
     {
@@ -447,8 +451,7 @@ public:     // python
             // methods
             .def("new_variable", &Type::new_variable, "value"_a)
             .def("new_variables", &Type::new_variables, "values"_a)
-            .def("derive", &Type::derive, "expression"_a, "variables"_a)
-        ;
+            .def("derive", &Type::derive, "expression"_a, "variables"_a);
     }
 };
 
@@ -535,7 +538,7 @@ inline Variable& operator-=(Variable& lhs, const double rhs)
     return lhs;
 }
 
-inline Variable operator*(const Variable &lhs, const Variable &rhs)
+inline Variable operator*(const Variable& lhs, const Variable& rhs)
 {
     HyperGraph* graph = lhs.graph();
 
@@ -544,7 +547,7 @@ inline Variable operator*(const Variable &lhs, const Variable &rhs)
     return ret;
 }
 
-inline Variable operator*(const Variable &lhs, const double rhs)
+inline Variable operator*(const Variable& lhs, const double rhs)
 {
     HyperGraph* graph = lhs.graph();
 
@@ -553,24 +556,24 @@ inline Variable operator*(const Variable &lhs, const double rhs)
     return ret;
 }
 
-inline Variable operator*(const double lhs, const Variable &rhs)
+inline Variable operator*(const double lhs, const Variable& rhs)
 {
     return rhs * lhs;
 }
 
-inline Variable& operator*=(Variable &lhs, const Variable &rhs)
+inline Variable& operator*=(Variable& lhs, const Variable& rhs)
 {
     lhs = lhs * rhs;
     return lhs;
 }
 
-inline Variable& operator*=(Variable &lhs, const double rhs)
+inline Variable& operator*=(Variable& lhs, const double rhs)
 {
     lhs = lhs * rhs;
     return lhs;
 }
 
-inline Variable inv(const Variable &x)
+inline Variable inv(const Variable& x)
 {
     HyperGraph* graph = x.graph();
 
@@ -587,28 +590,28 @@ inline double inv(const double x)
     return 1.0 / x;
 }
 
-inline Variable operator/(const Variable &lhs, const Variable &rhs)
+inline Variable operator/(const Variable& lhs, const Variable& rhs)
 {
     return lhs * inv(rhs);
 }
 
-inline Variable operator/(const Variable &lhs, const double rhs)
+inline Variable operator/(const Variable& lhs, const double rhs)
 {
     return lhs * inv(rhs);
 }
 
-inline Variable operator/(const double lhs, const Variable &rhs)
+inline Variable operator/(const double lhs, const Variable& rhs)
 {
     return lhs * inv(rhs);
 }
 
-inline Variable& operator/=(Variable &lhs, const Variable &rhs)
+inline Variable& operator/=(Variable& lhs, const Variable& rhs)
 {
     lhs = lhs / rhs;
     return lhs;
 }
 
-inline Variable& operator/=(Variable &lhs, const double rhs)
+inline Variable& operator/=(Variable& lhs, const double rhs)
 {
     lhs = lhs / rhs;
     return lhs;
