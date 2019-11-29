@@ -422,7 +422,7 @@ public: // methods
         if (fo_edge.to() == so_edge.to()) {
             self_second_order_edge(fo_edge) += 2 * fo_edge.weight() * so_edge.weight();
         } else {
-            second_order_edge(fo_edge, so_edge) = fo_edge.weight() * so_edge.weight();
+            second_order_edge(fo_edge, so_edge) += fo_edge.weight() * so_edge.weight();
         }
     }
 
@@ -481,7 +481,7 @@ public: // methods
                     if (e1.to() == e2.to()) {
                         self_second_order_edge(e2) += 2.0 * e1.weight() * e2.weight() * self_second_order_edge(vid);
                     } else {
-                        second_order_edge(e1, e2) = e1.weight() * e2.weight() * self_second_order_edge(vid);
+                        second_order_edge(e1, e2) += e1.weight() * e2.weight() * self_second_order_edge(vid);
                     }
                 }
             }
@@ -494,7 +494,7 @@ public: // methods
                     } else if (e1.to() == e2.to()) {
                         self_second_order_edge(e1) += 2.0 * a * v.second_order_weight();
                     } else {
-                        second_order_edge(e1, e2) = a * v.second_order_weight();
+                        second_order_edge(e1, e2) += a * v.second_order_weight();
                     }
                 }
 
