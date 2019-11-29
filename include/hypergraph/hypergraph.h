@@ -19,6 +19,17 @@ index length(const TContainer& container)
 }
 
 class HyperGraph;
+class Variable;
+
+inline Variable abs(const Variable& x);
+inline Variable pow(const Variable& x, const double a);
+inline Variable acos(const Variable& x);
+inline Variable asin(const Variable& x);
+inline Variable atan(const Variable& x);
+inline Variable cos(const Variable& x);
+inline Variable sin(const Variable& x);
+inline Variable sqrt(const Variable& x);
+inline Variable tan(const Variable& x);
 
 class Variable {
 private: // info
@@ -79,14 +90,14 @@ public: // python
             .def_property_readonly("_id", &Type::id)
             // methods
             .def("__abs__", [](const Variable& x) { return hypergraph::abs(x); })
-            .def("__pow__", &hypergraph::pow)
-            .def("arccos", &hypergraph::acos)
-            .def("arcsin", &hypergraph::asin)
-            .def("arctan", &hypergraph::atan)
-            .def("cos", &hypergraph::cos)
-            .def("sin", &hypergraph::sin)
-            .def("sqrt", &hypergraph::sqrt)
-            .def("tan", &hypergraph::tan)
+            .def("__pow__", [](const Variable& x, const double a) { return hypergraph::pow(x, a); })
+            .def("arccos", [](const Variable& x) { return hypergraph::acos(x); })
+            .def("arcsin", [](const Variable& x) { return hypergraph::asin(x); })
+            .def("arctan", [](const Variable& x) { return hypergraph::atan(x); })
+            .def("cos", [](const Variable& x) { return hypergraph::cos(x); })
+            .def("sin", [](const Variable& x) { return hypergraph::sin(x); })
+            .def("sqrt", [](const Variable& x) { return hypergraph::sqrt(x); })
+            .def("tan", [](const Variable& x) { return hypergraph::tan(x); })
             // operators
             .def(py::self == py::self)
             .def(py::self != py::self)
