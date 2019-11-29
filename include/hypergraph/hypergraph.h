@@ -841,9 +841,9 @@ inline Variable sqrt(const Variable& x)
     HyperGraph* graph = x.graph();
 
     double sqrt = std::sqrt(x.value());
-    double inv_sqrt_x = 1.0 / sqrt;
+    double inv_sqrt = 1.0 / sqrt;
     Variable result = graph->new_variable(sqrt);
-    graph->add_edge(result, x, 0.5 * inv_sqrt_x, -0.25 * inv_sqrt_x / x.value());
+    graph->add_edge(result, x, 0.5 * inv_sqrt, -0.25 * inv_sqrt / x.value());
     return result;
 }
 
