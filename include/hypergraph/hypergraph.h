@@ -20,6 +20,7 @@ index length(const TContainer& container)
 
 class HyperGraph;
 class Variable;
+class Edge;
 
 inline Variable abs(const Variable& x);
 inline Variable pow(const Variable& x, const double a);
@@ -30,6 +31,20 @@ inline Variable cos(const Variable& x);
 inline Variable sin(const Variable& x);
 inline Variable sqrt(const Variable& x);
 inline Variable tan(const Variable& x);
+
+template <typename T>
+inline index vertex_id(const T& item)
+{
+    if constexpr (std::is_same<T, index>::value) {
+        return item;
+    }
+    if constexpr (std::is_same<T, Variable>::value) {
+        return item.id();
+    }
+    if constexpr (std::is_same<T, Edge>::value) {
+        return item.to();
+    }
+}
 
 class Variable {
 private: // info
@@ -215,9 +230,10 @@ public: // methods
         m_edge1 = value;
     }
 
-    void set_edge1(const index to, const double weight)
+    template <typename T>
+    void set_edge1(const T to, const double weight)
     {
-        m_edge1 = {to, weight};
+        m_edge1 = {vertex_id(to), weight};
     }
 
     Edge& edge1()
@@ -235,9 +251,10 @@ public: // methods
         m_edge2 = value;
     }
 
-    void set_edge2(const index to, const double weight)
+    template <typename T>
+    void set_edge2(const T to, const double weight)
     {
-        m_edge2 = {to, weight};
+        m_edge2 = {vertex_id(to), weight};
     }
 
     Edge& edge2()
@@ -285,7 +302,7 @@ public: // methods
     Variable new_variable(const double value)
     {
         const index id = length(m_vertices);
-        m_vertices.push_back(Vertex(id));
+        m_vertices.emplace_back(id);
         return Variable(this, value, id);
     }
 
@@ -298,33 +315,31 @@ public: // methods
         return variables;
     }
 
-    void add_edge(const Variable& c, const Variable& p, const double weight, const double second_order_weight)
+    void add_edge(const Variable& c, const Variable& p, const double w, const double second_order_weight)
     {
-        Vertex& vertex = m_vertices[c.id()];
-        vertex.set_edge1(Edge(p.id(), weight));
-        vertex.set_second_order_weight(second_order_weight);
+        Vertex& v = vertex(c);
+        v.set_edge1(p, w);
+        v.set_second_order_weight(second_order_weight);
     }
 
-    void add_edge(const Variable& c, const Variable& p1, const Variable& p2, const double weight1, const double weight2, const double second_order_weight)
+    void add_edge(const Variable& c, const Variable& p1, const Variable& p2, const double w1, const double w2, const double second_order_weight)
     {
-        Vertex& vertex = m_vertices[c.id()];
-        vertex.set_edge1(p1.id(), weight1);
-        vertex.set_edge2(p2.id(), weight2);
-        vertex.set_second_order_weight(second_order_weight);
+        Vertex& v = vertex(c);
+        v.set_edge1(p1, w1);
+        v.set_edge2(p2, w2);
+        v.set_second_order_weight(second_order_weight);
     }
 
     template <typename T>
-    inline index vertex_id(const T& item)
+    inline Vertex vertex(T a) const
     {
-        if constexpr (std::is_same<T, index>::value) {
-            return item;
-        }
-        if constexpr (std::is_same<T, Variable>::value) {
-            return item.id();
-        }
-        if constexpr (std::is_same<T, Edge>::value) {
-            return item.to();
-        }
+        return m_vertices[vertex_id(a)];
+    }
+
+    template <typename T>
+    inline Vertex& vertex(T a)
+    {
+        return m_vertices[vertex_id(a)];
     }
 
     template <typename T>
@@ -371,12 +386,12 @@ public: // methods
 
     void set_adjoint(const Variable& v, const double adj)
     {
-        m_vertices[v.id()].set_weight(adj);
+        vertex(v).set_weight(adj);
     }
 
     double get_adjoint(const Variable& v)
     {
-        return m_vertices[v.id()].weight();
+        return vertex(v).weight();
     }
 
     double get_adjoint(const Variable& i, const Variable& j)
@@ -390,12 +405,12 @@ public: // methods
 
     index single_edge_propagate(index x, double& a)
     {
-        bool cont = m_vertices[x].edge1().to() != x && m_vertices[x].edge2().to() == x;
+        bool cont = vertex(x).edge1().to() != x && vertex(x).edge2().to() == x;
 
         while (cont) {
-            a *= m_vertices[x].edge1().weight();
-            x = m_vertices[x].edge1().to();
-            cont = m_vertices[x].edge1().to() != x && m_vertices[x].edge2().to() == x;
+            a *= vertex(x).edge1().weight();
+            x = vertex(x).edge1().to();
+            cont = vertex(x).edge1().to() != x && vertex(x).edge2().to() == x;
         }
 
         return x;
@@ -423,9 +438,9 @@ public: // methods
         m_self_second_order_edges.resize(m_vertices.size(), 0.0);
 
         for (index vid = length(m_vertices) - 1; vid > 0; vid--) {
-            Vertex& vertex = m_vertices[vid];
-            Edge& e1 = vertex.edge1();
-            Edge& e2 = vertex.edge2();
+            Vertex& v = vertex(vid);
+            Edge& e1 = v.edge1();
+            Edge& e2 = v.edge2();
 
             if (e1.to() == vid) {
                 continue;
@@ -457,22 +472,22 @@ public: // methods
                 }
             }
 
-            double a = vertex.weight();
+            double a = v.weight();
             if (a != 0.0) {
-                if (vertex.second_order_weight() != 0.0) {
+                if (v.second_order_weight() != 0.0) {
                     if (e2.to() == vid) {
-                        self_second_order_edge(e1) += a * vertex.second_order_weight();
+                        self_second_order_edge(e1) += a * v.second_order_weight();
                     } else if (e1.to() == e2.to()) {
-                        self_second_order_edge(e1) += 2.0 * a * vertex.second_order_weight();
+                        self_second_order_edge(e1) += 2.0 * a * v.second_order_weight();
                     } else {
-                        second_order_edge(e1, e2) = a * vertex.second_order_weight();
+                        second_order_edge(e1, e2) = a * v.second_order_weight();
                     }
                 }
 
-                vertex.weight() = 0.0;
-                m_vertices[e1.to()].weight() += a * e1.weight();
+                v.weight() = 0.0;
+                vertex(e1).weight() += a * e1.weight();
                 if (e2.to() != vid) {
-                    m_vertices[e2.to()].weight() += a * e2.weight();
+                    vertex(e2).weight() += a * e2.weight();
                 }
             }
         }
