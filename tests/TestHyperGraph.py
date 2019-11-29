@@ -416,6 +416,32 @@ class TestHyperGraph(unittest.TestCase):
                                                [0, 0, 0, 0,  0, 7/(9*np.sqrt(6))]])
         assert_array_almost_equal(np.tril(h).T, np.triu(h))
 
+    def test_out(self):
+        graph = hg.HyperGraph()
+
+        ax, ay, az, bx, by, bz = graph.new_variables([1, 2, 3, 4, 5, 6])
+
+        a = np.array([ax, ay, az])
+        b = np.array([bx, by, bz])
+
+        result = np.linalg.norm(np.cross(a, b))
+        assert_almost_equal(result.value, 3*np.sqrt(6))
+
+        graph.compute(result)
+
+        g = np.empty(6)
+        h = np.empty((6, 6))
+
+        graph.g([ax, ay, az, bx, by, bz], out=g)
+        graph.h([ax, ay, az, bx, by, bz], out=h)
+
+        assert_array_almost_equal(g, [-17/np.sqrt(6), -np.sqrt(2/3), 13/np.sqrt(6), 4*np.sqrt(2/3), np.sqrt(2/3), -2*np.sqrt(2/3)])
+        assert_array_almost_equal(h, [[77/(18*np.sqrt(6)), -77/(9*np.sqrt(6)), 77/(18*np.sqrt(6)), -8*np.sqrt(2/3)/9,  23/(9*np.sqrt(6)), -17*np.sqrt(2/3)/9],
+                                      [0, 77*np.sqrt(2/3)/9, -77/(9*np.sqrt(6)), 41/(9*np.sqrt(6)), -32*np.sqrt(2/3)/9, 23/(9*np.sqrt(6))],
+                                      [0, 0, 77/(18*np.sqrt(6)), np.sqrt(2/3)/9, 41/(9*np.sqrt(6)), -8*np.sqrt(2/3)/9],
+                                      [0, 0, 0, 7/(9*np.sqrt(6)),  -7*np.sqrt(2/3)/9, 7/(9*np.sqrt(6))],
+                                      [0, 0, 0, 0,  14*np.sqrt(2/3)/9, -7*np.sqrt(2/3)/9],
+                                      [0, 0, 0, 0,  0, 7/(9*np.sqrt(6))]])
 
 if __name__ == '__main__':
     unittest.main()
