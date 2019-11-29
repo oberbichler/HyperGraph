@@ -78,6 +78,24 @@ public: // python
             // read-only properties
             .def_property_readonly("_id", &Type::id)
             // operators
+            .def(py::self == py::self)
+            .def(py::self != py::self)
+            .def(py::self < py::self)
+            .def(py::self > py::self)
+            .def(py::self <= py::self)
+            .def(py::self >= py::self)
+            .def(py::self == double())
+            .def(py::self != double())
+            .def(py::self < double())
+            .def(py::self > double())
+            .def(py::self <= double())
+            .def(py::self >= double())
+            .def(double() == py::self)
+            .def(double() != py::self)
+            .def(double() < py::self)
+            .def(double() > py::self)
+            .def(double() <= py::self)
+            .def(double() >= py::self)
             .def(-py::self)
             .def(py::self + py::self)
             .def(py::self + double())
@@ -454,6 +472,96 @@ public: // python
             .def("derive", &Type::derive, "expression"_a, "variables"_a);
     }
 };
+
+inline bool operator<(const Variable& lhs, const Variable& rhs)
+{
+    return lhs.value() < rhs.value();
+}
+
+inline bool operator<(const double lhs, const Variable& rhs)
+{
+    return lhs < rhs.value();
+}
+
+inline bool operator<(const Variable& lhs, const double rhs)
+{
+    return lhs.value() < rhs;
+}
+
+inline bool operator<=(const Variable& lhs, const Variable& rhs)
+{
+    return lhs.value() <= rhs.value();
+}
+
+inline bool operator<=(const double lhs, const Variable& rhs)
+{
+    return lhs <= rhs.value();
+}
+
+inline bool operator<=(const Variable& lhs, const double rhs)
+{
+    return lhs.value() <= rhs;
+}
+
+inline bool operator>(const Variable& lhs, const Variable& rhs)
+{
+    return lhs.value() > rhs.value();
+}
+
+inline bool operator>(const double lhs, const Variable& rhs)
+{
+    return lhs > rhs.value();
+}
+
+inline bool operator>(const Variable& lhs, const double rhs)
+{
+    return lhs.value() > rhs;
+}
+
+inline bool operator>=(const Variable& lhs, const Variable& rhs)
+{
+    return lhs.value() >= rhs.value();
+}
+
+inline bool operator>=(const double lhs, const Variable& rhs)
+{
+    return lhs >= rhs.value();
+}
+
+inline bool operator>=(const Variable& lhs, const double rhs)
+{
+    return lhs.value() >= rhs;
+}
+
+inline bool operator==(const Variable& lhs, const Variable& rhs)
+{
+    return lhs.value() == rhs.value();
+}
+
+inline bool operator==(const double lhs, const Variable& rhs)
+{
+    return lhs == rhs.value();
+}
+
+inline bool operator==(const Variable& lhs, const double rhs)
+{
+    return lhs.value() == rhs;
+}
+
+inline bool operator!=(const Variable& lhs, const Variable& rhs)
+{
+    return lhs.value() != rhs.value();
+}
+
+inline bool operator!=(const double lhs, const Variable& rhs)
+{
+    return lhs != rhs.value();
+}
+
+inline bool operator!=(const Variable& lhs, const double rhs)
+{
+    return lhs.value() != rhs;
+}
 
 inline Variable operator-(const Variable& x)
 {
