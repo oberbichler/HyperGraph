@@ -252,7 +252,8 @@ public:     // methods
         vertex.set_second_order_weight(second_order_weight);
     }
 
-    void add_edge(const Variable& c, const Variable& p1, const Variable& p2, const double weight1, const double weight2, const double second_order_weight) {
+    void add_edge(const Variable& c, const Variable& p1, const Variable& p2, const double weight1, const double weight2, const double second_order_weight)
+    {
         Vertex& vertex = m_vertices[c.id()];
         vertex.set_edge1(Edge(p1.id(), weight1));
         vertex.set_edge2(Edge(p2.id(), weight2));
@@ -304,11 +305,13 @@ public:     // methods
         m_vertices[v.id()].set_weight(adj);
     }
 
-    double get_adjoint(const Variable& v) {
+    double get_adjoint(const Variable& v)
+    {
         return m_vertices[v.id()].weight();
     }
 
-    double get_adjoint(const Variable& i, const Variable& j) {
+    double get_adjoint(const Variable& i, const Variable& j)
+    {
         if (i.id() == j.id()) {
             return self_second_order_edge(i);
         } else {
