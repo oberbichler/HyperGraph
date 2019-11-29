@@ -443,5 +443,6 @@ class TestHyperGraph(unittest.TestCase):
                                       [0, 0, 0, 0,  14*np.sqrt(2/3)/9, -7*np.sqrt(2/3)/9],
                                       [0, 0, 0, 0,  0, 7/(9*np.sqrt(6))]])
 
+
 if __name__ == '__main__':
     unittest.main()
