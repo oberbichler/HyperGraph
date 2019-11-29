@@ -298,7 +298,6 @@ private: // variables
     std::vector<double> m_self_second_order_edges;
 
 public: // constructor
-
 public: // methods
     Variable new_variable(const double value)
     {
@@ -390,12 +389,12 @@ public: // methods
         vertex(v).set_weight(adj);
     }
 
-    double get_adjoint(const Variable& v)
+    double get_adjoint(const Variable& v) const
     {
         return vertex(v).weight();
     }
 
-    double get_adjoint(const Variable& i, const Variable& j)
+    double get_adjoint(const Variable& i, const Variable& j) const
     {
         if (i.id() == j.id()) {
             return self_second_order_edge(i);
@@ -511,31 +510,64 @@ public: // methods
         }
     }
 
-    std::pair<Eigen::VectorXd, Eigen::MatrixXd> derive(const Variable expression, const std::vector<Variable>& variables)
+    void compute(const Variable expression)
     {
         clear();
         set_adjoint(expression, 1.0);
         propagate_adjoint();
+    }
 
+    Eigen::VectorXd g(const std::vector<Variable>& variables) const
+    {
         const index n = length(variables);
 
-        Eigen::VectorXd g(n);
-        Eigen::MatrixXd h(n, n);
+        Eigen::VectorXd result(n);
+
+        g(variables, result);
+
+        return result;
+    }
+
+    void g(const std::vector<Variable>& variables, Eigen::Ref<Eigen::VectorXd> out) const
+    {
+        const index n = length(variables);
 
         for (index i = 0; i < n; i++) {
-            g(i) = get_adjoint(variables[i]);
+            out(i) = get_adjoint(variables[i]);
         }
+    }
 
-        for (index i = 0; i < n; i++) {
-            for (index j = 0; j < i; j++) {
-                h(i, j) = 0.0;
+    Eigen::MatrixXd h(const std::vector<Variable>& variables, bool full = false) const
+    {
+        const index n = length(variables);
+
+        Eigen::MatrixXd result(n, n);
+
+        h(variables, result, full);
+
+        return result;
+    }
+
+    void h(const std::vector<Variable>& variables, Eigen::Ref<Eigen::MatrixXd> out, bool full = false) const
+    {
+        const index n = length(variables);
+
+        if (full) {
+            for (index i = 0; i < n; i++) {
+                for (index j = 0; j < n; j++) {
+                    out(i, j) = get_adjoint(variables[i], variables[j]);
+                }
             }
-            for (index j = i; j < n; j++) {
-                h(i, j) = get_adjoint(variables[i], variables[j]);
+        } else {
+            for (index i = 0; i < n; i++) {
+                for (index j = 0; j < i; j++) {
+                    out(i, j) = 0.0;
+                }
+                for (index j = i; j < n; j++) {
+                    out(i, j) = get_adjoint(variables[i], variables[j]);
+                }
             }
         }
-
-        return {g, h};
     }
 
 public: // python
@@ -553,7 +585,9 @@ public: // python
             // methods
             .def("new_variable", &Type::new_variable, "value"_a)
             .def("new_variables", &Type::new_variables, "values"_a)
-            .def("derive", &Type::derive, "expression"_a, "variables"_a);
+            .def("compute", &Type::compute, "expression"_a)
+            .def("g", py::overload_cast<const std::vector<Variable>&>(&Type::g, py::const_), "variables"_a)
+            .def("h", py::overload_cast<const std::vector<Variable>&, const bool>(&Type::h, py::const_), "variables"_a, "full"_a=false);
     }
 };
 
