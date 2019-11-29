@@ -259,6 +259,28 @@ public:     // methods
         vertex.set_second_order_weight(second_order_weight);
     }
 
+    inline double self_second_order_edge(index a) const
+    {
+        return m_self_second_order_edges[a];
+    }
+
+    inline double& self_second_order_edge(index a)
+    {
+        return m_self_second_order_edges[a];
+    }
+
+    inline double second_order_edge(index a, index b) const
+    {
+        const auto [min, max] = std::minmax(a, b);
+        return m_second_order_edges[max].at(min);
+    }
+
+    inline double& second_order_edge(index a, index b)
+    {
+        const auto [min, max] = std::minmax(a, b);
+        return m_second_order_edges[max][min];
+    }
+
     void set_adjoint(const Variable& v, const double adj)
     {
         m_vertices[v.id()].set_weight(adj);
@@ -270,10 +292,9 @@ public:     // methods
 
     double get_adjoint(const Variable& i, const Variable& j) {
         if (i.id() == j.id()) {
-            return m_self_second_order_edges[i.id()];
+            return self_second_order_edge(i.id());
         } else {
-            const auto [min, max] = std::minmax(i.id(), j.id());
-            return m_second_order_edges[max][min];
+            return second_order_edge(i.id(), j.id());
         }
     }
 
@@ -293,10 +314,9 @@ public:     // methods
     void push_edge(const Edge& foEdge, const Edge& soEdge)
     {
         if (foEdge.to() == soEdge.to()) {
-            m_self_second_order_edges[foEdge.to()] += 2 * foEdge.weight() * soEdge.weight();
+            self_second_order_edge(foEdge.to()) += 2 * foEdge.weight() * soEdge.weight();
         } else {
-            const auto [min, max] = std::minmax(foEdge.to(), soEdge.to());
-            m_second_order_edges[max][min] = foEdge.weight() * soEdge.weight();
+            second_order_edge(foEdge.to(), soEdge.to()) = foEdge.weight() * soEdge.weight();
         }
     }
 
@@ -335,15 +355,14 @@ public:     // methods
                     push_edge(e2, soEdge);
                 }
             }
-            if (m_self_second_order_edges[vid] != 0.0) {
-                m_self_second_order_edges[e1.to()] += e1.weight() * e1.weight() * m_self_second_order_edges[vid];
+            if (self_second_order_edge(vid) != 0.0) {
+                self_second_order_edge(e1.to()) += e1.weight() * e1.weight() * self_second_order_edge(vid);
                 if (e2.to() != vid) {
-                    m_self_second_order_edges[e2.to()] += e2.weight() * e2.weight() * m_self_second_order_edges[vid];
+                    self_second_order_edge(e2.to()) += e2.weight() * e2.weight() * self_second_order_edge(vid);
                     if (e1.to() == e2.to()) {
-                        m_self_second_order_edges[e2.to()] += 2.0 * e1.weight() * e2.weight() * m_self_second_order_edges[vid];
+                        self_second_order_edge(e2.to()) += 2.0 * e1.weight() * e2.weight() * self_second_order_edge(vid);
                     } else {
-                        const auto [min, max] = std::minmax(e1.to(), e2.to());
-                        m_second_order_edges[max][min] = e1.weight() * e2.weight() * m_self_second_order_edges[vid];
+                        second_order_edge(e1.to(), e2.to()) = e1.weight() * e2.weight() * self_second_order_edge(vid);
                     }
                 }
             }
@@ -352,12 +371,11 @@ public:     // methods
             if (a != 0.0) {
                 if (vertex.second_order_weight() != 0.0) {
                     if (e2.to() == vid) {
-                        m_self_second_order_edges[e1.to()] += a * vertex.second_order_weight();
+                        self_second_order_edge(e1.to()) += a * vertex.second_order_weight();
                     } else if (e1.to() == e2.to()) {
-                        m_self_second_order_edges[e1.to()] += 2.0 * a * vertex.second_order_weight();
+                        self_second_order_edge(e1.to()) += 2.0 * a * vertex.second_order_weight();
                     } else {
-                        const auto [min, max] = std::minmax(e1.to(), e2.to());
-                        m_second_order_edges[max][min] = a * vertex.second_order_weight();
+                        second_order_edge(e1.to(), e2.to()) = a * vertex.second_order_weight();
                     }
                 }
 
