@@ -293,18 +293,27 @@ private: // types
     using Type = HyperGraph;
 
 private: // variables
+    std::vector<Variable> m_variables;
     std::vector<Vertex> m_vertices;
     std::vector<tsl::robin_map<index, double>> m_second_order_edges;
     std::vector<double> m_self_second_order_edges;
 
 public: // constructor
-
 public: // methods
-    Variable new_variable(const double value)
+    Variable new_tmp_variable(const double value)
     {
         const index id = length(m_vertices);
         m_vertices.emplace_back(id);
         return Variable(this, value, id);
+    }
+
+    Variable new_variable(const double value)
+    {
+        const index id = length(m_vertices);
+        m_vertices.emplace_back(id);
+        Variable variable(this, value, id);
+        m_variables.push_back(variable);
+        return variable;
     }
 
     std::vector<Variable> new_variables(const std::vector<double>& values)
@@ -390,12 +399,12 @@ public: // methods
         vertex(v).set_weight(adj);
     }
 
-    double get_adjoint(const Variable& v)
+    double get_adjoint(const Variable& v) const
     {
         return vertex(v).weight();
     }
 
-    double get_adjoint(const Variable& i, const Variable& j)
+    double get_adjoint(const Variable& i, const Variable& j) const
     {
         if (i.id() == j.id()) {
             return self_second_order_edge(i);
@@ -511,31 +520,64 @@ public: // methods
         }
     }
 
-    std::pair<Eigen::VectorXd, Eigen::MatrixXd> derive(const Variable expression, const std::vector<Variable>& variables)
+    void compute(const Variable expression)
     {
         clear();
         set_adjoint(expression, 1.0);
         propagate_adjoint();
+    }
 
-        const index n = length(variables);
+    Eigen::VectorXd g() const
+    {
+        const index n = length(m_variables);
 
-        Eigen::VectorXd g(n);
-        Eigen::MatrixXd h(n, n);
+        Eigen::VectorXd result(n);
+
+        g(result);
+
+        return result;
+    }
+
+    void g(Eigen::Ref<Eigen::VectorXd> out) const
+    {
+        const index n = length(m_variables);
 
         for (index i = 0; i < n; i++) {
-            g(i) = get_adjoint(variables[i]);
+            out(i) = get_adjoint(m_variables[i]);
         }
+    }
 
-        for (index i = 0; i < n; i++) {
-            for (index j = 0; j < i; j++) {
-                h(i, j) = 0.0;
+    Eigen::MatrixXd h(bool full = false) const
+    {
+        const index n = length(m_variables);
+
+        Eigen::MatrixXd result(n, n);
+
+        h(result, full);
+
+        return result;
+    }
+
+    void h(Eigen::Ref<Eigen::MatrixXd> out, bool full = false) const
+    {
+        const index n = length(m_variables);
+
+        if (full) {
+            for (index i = 0; i < n; i++) {
+                for (index j = 0; j < n; j++) {
+                    out(i, j) = get_adjoint(m_variables[i], m_variables[j]);
+                }
             }
-            for (index j = i; j < n; j++) {
-                h(i, j) = get_adjoint(variables[i], variables[j]);
+        } else {
+            for (index i = 0; i < n; i++) {
+                for (index j = 0; j < i; j++) {
+                    out(i, j) = 0.0;
+                }
+                for (index j = i; j < n; j++) {
+                    out(i, j) = get_adjoint(m_variables[i], m_variables[j]);
+                }
             }
         }
-
-        return {g, h};
     }
 
 public: // python
@@ -553,7 +595,11 @@ public: // python
             // methods
             .def("new_variable", &Type::new_variable, "value"_a)
             .def("new_variables", &Type::new_variables, "values"_a)
-            .def("derive", &Type::derive, "expression"_a, "variables"_a);
+            .def("compute", &Type::compute, "expression"_a)
+            .def("g", py::overload_cast<>(&Type::g, py::const_))
+            .def("g", py::overload_cast<Eigen::Ref<Eigen::VectorXd>>(&Type::g, py::const_), "out"_a)
+            .def("h", py::overload_cast<const bool>(&Type::h, py::const_), "full"_a = false)
+            .def("h", py::overload_cast<Eigen::Ref<Eigen::MatrixXd>, const bool>(&Type::h, py::const_), "out"_a, "full"_a = false);
     }
 };
 
@@ -651,7 +697,7 @@ inline Variable operator-(const Variable& x)
 {
     HyperGraph* graph = x.graph();
 
-    const Variable result = graph->new_variable(-x.value());
+    const Variable result = graph->new_tmp_variable(-x.value());
     graph->add_edge(result, x, -1.0, 0.0);
     return result;
 }
@@ -660,7 +706,7 @@ inline Variable operator+(const Variable& lhs, const Variable& rhs)
 {
     HyperGraph* graph = lhs.graph();
 
-    const Variable result = graph->new_variable(lhs.value() + rhs.value());
+    const Variable result = graph->new_tmp_variable(lhs.value() + rhs.value());
     graph->add_edge(result, lhs, rhs, 1.0, 1.0, 0.0);
     return result;
 }
@@ -669,7 +715,7 @@ inline Variable operator+(const Variable& lhs, const double rhs)
 {
     HyperGraph* graph = lhs.graph();
 
-    const Variable result = graph->new_variable(lhs.value() + rhs);
+    const Variable result = graph->new_tmp_variable(lhs.value() + rhs);
     graph->add_edge(result, lhs, 1.0, 0.0);
     return result;
 }
@@ -695,7 +741,7 @@ inline Variable operator-(const Variable& lhs, const Variable& rhs)
 {
     HyperGraph* graph = lhs.graph();
 
-    const Variable result = graph->new_variable(lhs.value() - rhs.value());
+    const Variable result = graph->new_tmp_variable(lhs.value() - rhs.value());
     graph->add_edge(result, lhs, rhs, 1.0, -1.0, 0.0);
     return result;
 }
@@ -704,7 +750,7 @@ inline Variable operator-(const Variable& lhs, const double rhs)
 {
     HyperGraph* graph = lhs.graph();
 
-    const Variable result = graph->new_variable(lhs.value() - rhs);
+    const Variable result = graph->new_tmp_variable(lhs.value() - rhs);
     graph->add_edge(result, lhs, 1.0, 0.0);
     return result;
 }
@@ -713,7 +759,7 @@ inline Variable operator-(const double lhs, const Variable& rhs)
 {
     HyperGraph* graph = rhs.graph();
 
-    const Variable result = graph->new_variable(lhs - rhs.value());
+    const Variable result = graph->new_tmp_variable(lhs - rhs.value());
     graph->add_edge(result, rhs, double(-1.0), 0.0);
     return result;
 }
@@ -734,7 +780,7 @@ inline Variable operator*(const Variable& lhs, const Variable& rhs)
 {
     HyperGraph* graph = lhs.graph();
 
-    const Variable result = graph->new_variable(lhs.value() * rhs.value());
+    const Variable result = graph->new_tmp_variable(lhs.value() * rhs.value());
     graph->add_edge(result, lhs, rhs, rhs.value(), lhs.value(), 1.0);
     return result;
 }
@@ -743,7 +789,7 @@ inline Variable operator*(const Variable& lhs, const double rhs)
 {
     HyperGraph* graph = lhs.graph();
 
-    const Variable result = graph->new_variable(lhs.value() * rhs);
+    const Variable result = graph->new_tmp_variable(lhs.value() * rhs);
     graph->add_edge(result, lhs, rhs, 0.0);
     return result;
 }
@@ -772,7 +818,7 @@ inline Variable inv(const Variable& x)
     const double inv_x = 1.0 / x.value();
     const double inv_x_sq = inv_x * inv_x;
     const double inv_x_cu = inv_x_sq * inv_x;
-    const Variable result = graph->new_variable(inv_x);
+    const Variable result = graph->new_tmp_variable(inv_x);
     graph->add_edge(result, x, -inv_x_sq, 2.0 * inv_x_cu);
     return result;
 }
@@ -835,7 +881,7 @@ inline Variable square(const Variable& x)
     HyperGraph* graph = x.graph();
 
     const double sq = x.value() * x.value();
-    const Variable result = graph->new_variable(sq);
+    const Variable result = graph->new_tmp_variable(sq);
     graph->add_edge(result, x, 2.0 * x.value(), 0.0);
     return result;
 }
@@ -846,7 +892,7 @@ inline Variable sqrt(const Variable& x)
 
     const double sqrt = std::sqrt(x.value());
     const double inv_sqrt = 1.0 / sqrt;
-    const Variable result = graph->new_variable(sqrt);
+    const Variable result = graph->new_tmp_variable(sqrt);
     graph->add_edge(result, x, 0.5 * inv_sqrt, -0.25 * inv_sqrt / x.value());
     return result;
 }
@@ -856,7 +902,7 @@ inline Variable pow(const Variable& x, const double a)
     HyperGraph* graph = x.graph();
 
     const double pow = std::pow(x.value(), a);
-    const Variable result = graph->new_variable(pow);
+    const Variable result = graph->new_tmp_variable(pow);
     graph->add_edge(result, x, a * std::pow(x.value(), a - 1.0), a * (a - 1.0) * std::pow(x.value(), a - 2.0));
     return result;
 }
@@ -866,7 +912,7 @@ inline Variable exp(const Variable& x)
     HyperGraph* graph = x.graph();
 
     const double exp = std::exp(x.value());
-    const Variable result = graph->new_variable(exp);
+    const Variable result = graph->new_tmp_variable(exp);
     graph->add_edge(result, x, exp, exp);
     return result;
 }
@@ -876,7 +922,7 @@ inline Variable log(const Variable& x)
     HyperGraph* graph = x.graph();
 
     const double log = std::log(x.value());
-    const Variable result = graph->new_variable(log);
+    const Variable result = graph->new_tmp_variable(log);
     const double inv = 1.0 / x.value();
     graph->add_edge(result, x, inv, -inv * inv);
     return result;
@@ -887,7 +933,7 @@ inline Variable cos(const Variable& x)
     HyperGraph* graph = x.graph();
 
     const double cos = std::cos(x.value());
-    const Variable result = graph->new_variable(cos);
+    const Variable result = graph->new_tmp_variable(cos);
     graph->add_edge(result, x, -std::sin(x.value()), -cos);
     return result;
 }
@@ -897,7 +943,7 @@ inline Variable sin(const Variable& x)
     HyperGraph* graph = x.graph();
 
     const double sin = std::sin(x.value());
-    const Variable result = graph->new_variable(sin);
+    const Variable result = graph->new_tmp_variable(sin);
     graph->add_edge(result, x, std::cos(x.value()), -sin);
     return result;
 }
@@ -909,7 +955,7 @@ inline Variable tan(const Variable& x)
     const double tan = std::tan(x.value());
     const double sec = 1.0 / std::cos(x.value());
     const double sec_sq = sec * sec;
-    const Variable result = graph->new_variable(tan);
+    const Variable result = graph->new_tmp_variable(tan);
     graph->add_edge(result, x, sec_sq, 2.0 * tan * sec_sq);
     return result;
 }
@@ -919,7 +965,7 @@ inline Variable acos(const Variable& x)
     HyperGraph* graph = x.graph();
 
     const double acos = std::acos(x.value());
-    const Variable result = graph->new_variable(acos);
+    const Variable result = graph->new_tmp_variable(acos);
     const double tmp = 1.0 / (1.0 - x.value() * x.value());
     const double neg_tmp_sqrt = -std::sqrt(tmp);
     graph->add_edge(result, x, neg_tmp_sqrt, x.value() * neg_tmp_sqrt * tmp);
@@ -931,7 +977,7 @@ inline Variable asin(const Variable& x)
     HyperGraph* graph = x.graph();
 
     const double asin = std::asin(x.value());
-    const Variable result = graph->new_variable(asin);
+    const Variable result = graph->new_tmp_variable(asin);
     const double tmp = 1.0 / (1.0 - x.value() * x.value());
     const double tmp_sqrt = std::sqrt(tmp);
     graph->add_edge(result, x, tmp_sqrt, x.value() * tmp_sqrt * tmp);
@@ -943,7 +989,7 @@ inline Variable atan(const Variable& x)
     HyperGraph* graph = x.graph();
 
     const double atan = std::atan(x.value());
-    const Variable result = graph->new_variable(atan);
+    const Variable result = graph->new_tmp_variable(atan);
     const double tmp = 1 / (1 + x.value() * x.value());
     graph->add_edge(result, x, tmp, -2 * x.value() * tmp * tmp);
     return result;
