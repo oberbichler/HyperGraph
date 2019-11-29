@@ -35,6 +35,7 @@ class TestHyperGraph(unittest.TestCase):
 
         g, h = graph.derive(result, [a, b])
         assert_array_equal(g, [1, 1])
+        assert_array_equal(h, [[0, 0], [0, 0]])
 
     def test_addition_variable_constant(self):
         graph = hg.HyperGraph()
@@ -46,6 +47,7 @@ class TestHyperGraph(unittest.TestCase):
 
         g, h = graph.derive(result, [a, b])
         assert_array_equal(g, [1, 0])
+        assert_array_equal(h, [[0, 0], [0, 0]])
 
     def test_addition_constant_variable(self):
         graph = hg.HyperGraph()
@@ -57,6 +59,7 @@ class TestHyperGraph(unittest.TestCase):
 
         g, h = graph.derive(result, [a, b])
         assert_array_equal(g, [0, 1])
+        assert_array_equal(h, [[0, 0], [0, 0]])
 
     # subtraction
 
@@ -70,6 +73,7 @@ class TestHyperGraph(unittest.TestCase):
 
         g, h = graph.derive(result, [a, b])
         assert_array_equal(g, [1, -1])
+        assert_array_equal(h, [[0, 0], [0, 0]])
 
     def test_subtraction_variable_constant(self):
         graph = hg.HyperGraph()
@@ -81,6 +85,7 @@ class TestHyperGraph(unittest.TestCase):
 
         g, h = graph.derive(result, [a, b])
         assert_array_equal(g, [1, 0])
+        assert_array_equal(h, [[0, 0], [0, 0]])
 
     def test_subtraction_constant_variable(self):
         graph = hg.HyperGraph()
@@ -92,6 +97,7 @@ class TestHyperGraph(unittest.TestCase):
 
         g, h = graph.derive(result, [a, b])
         assert_array_equal(g, [0, -1])
+        assert_array_equal(h, [[0, 0], [0, 0]])
 
     # multiplication
 
@@ -105,6 +111,7 @@ class TestHyperGraph(unittest.TestCase):
 
         g, h = graph.derive(result, [a, b])
         assert_array_equal(g, [6, 5])
+        assert_array_equal(h, [[0, 1], [0, 0]])
 
     def test_multiplication_variable_constant(self):
         graph = hg.HyperGraph()
@@ -116,6 +123,7 @@ class TestHyperGraph(unittest.TestCase):
 
         g, h = graph.derive(result, [a, b])
         assert_array_equal(g, [6, 0])
+        assert_array_equal(h, [[0, 0], [0, 0]])
 
     def test_multiplication_constant_variable(self):
         graph = hg.HyperGraph()
@@ -127,6 +135,7 @@ class TestHyperGraph(unittest.TestCase):
 
         g, h = graph.derive(result, [a, b])
         assert_array_equal(g, [0, 5])
+        assert_array_equal(h, [[0, 0], [0, 0]])
 
     # division
 
@@ -140,6 +149,7 @@ class TestHyperGraph(unittest.TestCase):
 
         g, h = graph.derive(result, [a, b])
         assert_array_almost_equal(g, [1/6, -5/36])
+        assert_array_almost_equal(h, [[0, -1/36], [0, 5/108]])
 
     def test_division_variable_constant(self):
         graph = hg.HyperGraph()
@@ -151,6 +161,7 @@ class TestHyperGraph(unittest.TestCase):
 
         g, h = graph.derive(result, [a, b])
         assert_array_almost_equal(g, [1/6, 0])
+        assert_array_equal(h, [[0, 0], [0, 0]])
 
     def test_division_constant_variable(self):
         graph = hg.HyperGraph()
@@ -162,6 +173,7 @@ class TestHyperGraph(unittest.TestCase):
 
         g, h = graph.derive(result, [a, b])
         assert_array_almost_equal(g, [0, -5/36])
+        assert_array_almost_equal(h, [[0, 0], [0, 5/108]])
 
 
 if __name__ == '__main__':
