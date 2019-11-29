@@ -567,9 +567,9 @@ inline Variable operator-(const Variable& x)
 {
     HyperGraph* graph = x.graph();
 
-    Variable ret = graph->new_variable(-x.value());
-    graph->add_edge(ret, x, -1.0, 0.0);
-    return ret;
+    Variable result = graph->new_variable(-x.value());
+    graph->add_edge(result, x, -1.0, 0.0);
+    return result;
 }
 
 inline Variable operator+(const Variable& lhs, const Variable& rhs)
@@ -611,27 +611,27 @@ inline Variable operator-(const Variable& lhs, const Variable& rhs)
 {
     HyperGraph* graph = lhs.graph();
 
-    Variable ret = graph->new_variable(lhs.value() - rhs.value());
-    graph->add_edge(ret, lhs, rhs, 1.0, -1.0, 0.0);
-    return ret;
+    Variable result = graph->new_variable(lhs.value() - rhs.value());
+    graph->add_edge(result, lhs, rhs, 1.0, -1.0, 0.0);
+    return result;
 }
 
 inline Variable operator-(const Variable& lhs, const double rhs)
 {
     HyperGraph* graph = lhs.graph();
 
-    Variable ret = graph->new_variable(lhs.value() - rhs);
-    graph->add_edge(ret, lhs, 1.0, double(0.0));
-    return ret;
+    Variable result = graph->new_variable(lhs.value() - rhs);
+    graph->add_edge(result, lhs, 1.0, 0.0);
+    return result;
 }
 
 inline Variable operator-(const double lhs, const Variable& rhs)
 {
     HyperGraph* graph = rhs.graph();
 
-    Variable ret = graph->new_variable(lhs - rhs.value());
-    graph->add_edge(ret, rhs, double(-1.0), double(0.0));
-    return ret;
+    Variable result = graph->new_variable(lhs - rhs.value());
+    graph->add_edge(result, rhs, double(-1.0), 0.0);
+    return result;
 }
 
 inline Variable& operator-=(Variable& lhs, const Variable& rhs)
@@ -650,18 +650,18 @@ inline Variable operator*(const Variable& lhs, const Variable& rhs)
 {
     HyperGraph* graph = lhs.graph();
 
-    Variable ret = graph->new_variable(lhs.value() * rhs.value());
-    graph->add_edge(ret, lhs, rhs, rhs.value(), lhs.value(), 1.0);
-    return ret;
+    Variable result = graph->new_variable(lhs.value() * rhs.value());
+    graph->add_edge(result, lhs, rhs, rhs.value(), lhs.value(), 1.0);
+    return result;
 }
 
 inline Variable operator*(const Variable& lhs, const double rhs)
 {
     HyperGraph* graph = lhs.graph();
 
-    Variable ret = graph->new_variable(lhs.value() * rhs);
-    graph->add_edge(ret, lhs, rhs, double(0.0));
-    return ret;
+    Variable result = graph->new_variable(lhs.value() * rhs);
+    graph->add_edge(result, lhs, rhs, 0.0);
+    return result;
 }
 
 inline Variable operator*(const double lhs, const Variable& rhs)
@@ -688,9 +688,9 @@ inline Variable inv(const Variable& x)
     double inv_x = 1.0 / x.value();
     double inv_x_sq = inv_x * inv_x;
     double inv_x_cu = inv_x_sq * inv_x;
-    Variable ret = graph->new_variable(inv_x);
-    graph->add_edge(ret, x, -inv_x_sq, 2.0 * inv_x_cu);
-    return ret;
+    Variable result = graph->new_variable(inv_x);
+    graph->add_edge(result, x, -inv_x_sq, 2.0 * inv_x_cu);
+    return result;
 }
 
 inline double inv(const double x)
