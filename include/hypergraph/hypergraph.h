@@ -77,6 +77,16 @@ public: // python
             .def_property_readonly("value", &Type::value)
             // read-only properties
             .def_property_readonly("_id", &Type::id)
+            // methods
+            .def("__abs__", [](const Variable& x) { return hypergraph::abs(x); })
+            .def("__pow__", &hypergraph::pow)
+            .def("arccos", &hypergraph::acos)
+            .def("arcsin", &hypergraph::asin)
+            .def("arctan", &hypergraph::atan)
+            .def("cos", &hypergraph::cos)
+            .def("sin", &hypergraph::sin)
+            .def("sqrt", &hypergraph::sqrt)
+            .def("tan", &hypergraph::tan)
             // operators
             .def(py::self == py::self)
             .def(py::self != py::self)
@@ -723,6 +733,124 @@ inline Variable& operator/=(Variable& lhs, const double rhs)
 {
     lhs = lhs / rhs;
     return lhs;
+}
+
+using std::abs;
+using std::acos;
+using std::asin;
+using std::atan;
+using std::cos;
+using std::exp;
+using std::log;
+using std::pow;
+using std::sin;
+using std::sqrt;
+using std::tan;
+
+inline Variable abs(const Variable& x)
+{
+    if (x.value() > 0) {
+        return x;
+    } else {
+        return -x;
+    }
+}
+
+inline Variable square(const Variable& x)
+{
+    double sq = x.value() * x.value();
+    Variable result = x.graph()->new_variable(sq);
+    x.graph()->add_edge(result, x, 2.0 * x.value(), 0.0);
+    return result;
+}
+
+inline Variable sqrt(const Variable& x)
+{
+    double sqrt = std::sqrt(x.value());
+    double inv_sqrt_x = 1.0 / sqrt;
+    Variable result = x.graph()->new_variable(sqrt);
+    x.graph()->add_edge(result, x, 0.5 * inv_sqrt_x, -0.25 * inv_sqrt_x / x.value());
+    return result;
+}
+
+inline Variable pow(const Variable& x, const double a)
+{
+    double pow = std::pow(x.value(), a);
+    Variable result = x.graph()->new_variable(pow);
+    x.graph()->add_edge(result, x, a * std::pow(x.value(), a - 1.0), a * (a - 1.0) * std::pow(x.value(), a - 2.0));
+    return result;
+}
+
+inline Variable exp(const Variable& x)
+{
+    double exp = std::exp(x.value());
+    Variable result = x.graph()->new_variable(exp);
+    x.graph()->add_edge(result, x, exp, exp);
+    return result;
+}
+
+inline Variable log(const Variable& x)
+{
+    double log = std::log(x.value());
+    Variable result = x.graph()->new_variable(log);
+    double inv = 1.0 / x.value();
+    x.graph()->add_edge(result, x, inv, -inv * inv);
+    return result;
+}
+
+inline Variable cos(const Variable& x)
+{
+    double cos = std::cos(x.value());
+    Variable result = x.graph()->new_variable(cos);
+    x.graph()->add_edge(result, x, -std::sin(x.value()), -cos);
+    return result;
+}
+
+inline Variable sin(const Variable& x)
+{
+    double sin = std::sin(x.value());
+    Variable result = x.graph()->new_variable(sin);
+    x.graph()->add_edge(result, x, std::cos(x.value()), -sin);
+    return result;
+}
+
+inline Variable tan(const Variable& x)
+{
+    double tan = std::tan(x.value());
+    double sec = 1.0 / std::cos(x.value());
+    double sec_sq = sec * sec;
+    Variable result = x.graph()->new_variable(tan);
+    x.graph()->add_edge(result, x, sec_sq, 2.0 * tan * sec_sq);
+    return result;
+}
+
+inline Variable acos(const Variable& x)
+{
+    double acos = std::acos(x.value());
+    Variable result = x.graph()->new_variable(acos);
+    double tmp = 1.0 / (1.0 - x.value() * x.value());
+    double neg_tmp_sqrt = -std::sqrt(tmp);
+    x.graph()->add_edge(result, x, neg_tmp_sqrt, x.value() * neg_tmp_sqrt * tmp);
+    return result;
+}
+
+inline Variable asin(const Variable& x)
+{
+    double asin = std::asin(x.value());
+    Variable result = x.graph()->new_variable(asin);
+    double tmp = 1.0 / (1.0 - x.value() * x.value());
+    double tmp_sqrt = std::sqrt(tmp);
+    x.graph()->add_edge(result, x, tmp_sqrt, x.value() * tmp_sqrt * tmp);
+    return result;
+}
+
+inline Variable atan(const Variable& x)
+{
+    const double atan = std::atan(x.value());
+    Variable result = x.graph()->new_variable(atan);
+    const double tmp = 1 / (1 + x.value() * x.value());
+    x.graph()->add_edge(result, x, tmp, -2 * x.value() * tmp * tmp);
+    return result;
 }
 
 } // namespace hypergraph
