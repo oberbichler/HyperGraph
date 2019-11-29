@@ -212,41 +212,41 @@ class TestHyperGraph(unittest.TestCase):
         assert_array_almost_equal(g, [1/np.cos(5)**2, 0])
         assert_array_almost_equal(h, [[2/np.cos(5)**2*np.tan(5), 0], [0, 0]])
 
-    def test_acos(self):
-        graph = hg.HyperGraph()
+    # def test_acos(self):
+    #     graph = hg.HyperGraph()
 
-        a, b = graph.new_variables([3/4, 6])
+    #     a, b = graph.new_variables([3/4, 6])
 
-        result = np.arccos(a)
-        assert_almost_equal(result.value, np.arccos(3/4))
+    #     result = np.arccos(a)
+    #     assert_almost_equal(result.value, np.arccos(3/4))
 
-        g, h = graph.derive(result, [a, b])
-        assert_array_almost_equal(g, [-4/np.sqrt(7), 0])
-        assert_array_almost_equal(h, [[-48/(7*np.sqrt(7)), 0], [0, 0]])
+    #     g, h = graph.derive(result, [a, b])
+    #     assert_array_almost_equal(g, [-4/np.sqrt(7), 0])
+    #     assert_array_almost_equal(h, [[-48/(7*np.sqrt(7)), 0], [0, 0]])
 
-    def test_asin(self):
-        graph = hg.HyperGraph()
+    # def test_asin(self):
+    #     graph = hg.HyperGraph()
 
-        a, b = graph.new_variables([3/4, 6])
+    #     a, b = graph.new_variables([3/4, 6])
 
-        result = np.arcsin(a)
-        assert_almost_equal(result.value, np.arcsin(3/4))
+    #     result = np.arcsin(a)
+    #     assert_almost_equal(result.value, np.arcsin(3/4))
 
-        g, h = graph.derive(result, [a, b])
-        assert_array_almost_equal(g, [4/np.sqrt(7), 0])
-        assert_array_almost_equal(h, [[48/(7*np.sqrt(7)), 0], [0, 0]])
+    #     g, h = graph.derive(result, [a, b])
+    #     assert_array_almost_equal(g, [4/np.sqrt(7), 0])
+    #     assert_array_almost_equal(h, [[48/(7*np.sqrt(7)), 0], [0, 0]])
 
-    def test_atan(self):
-        graph = hg.HyperGraph()
+    # def test_atan(self):
+    #     graph = hg.HyperGraph()
 
-        a, b = graph.new_variables([3/4, 6])
+    #     a, b = graph.new_variables([3/4, 6])
 
-        result = np.arctan(a)
-        assert_almost_equal(result.value, np.arctan(3/4))
+    #     result = np.arctan(a)
+    #     assert_almost_equal(result.value, np.arctan(3/4))
 
-        g, h = graph.derive(result, [a, b])
-        assert_array_almost_equal(g, [16/25, 0])
-        assert_array_almost_equal(h, [[-384/625, 0], [0, 0]])
+    #     g, h = graph.derive(result, [a, b])
+    #     assert_array_almost_equal(g, [16/25, 0])
+    #     assert_array_almost_equal(h, [[-384/625, 0], [0, 0]])
 
 if __name__ == '__main__':
     unittest.main()
