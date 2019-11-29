@@ -334,7 +334,7 @@ public: // methods
     {
         const auto [min, max] = std::minmax(vertex_id(a), vertex_id(b));
         const auto it = m_second_order_edges[max].find(min);
-        if (it == m_second_order_edges.end()) {
+        if (it == m_second_order_edges[max].end()) {
             return 0.0;
         }
         return it->second;
@@ -344,11 +344,7 @@ public: // methods
     inline double& second_order_edge(T a, T b)
     {
         const auto [min, max] = std::minmax(vertex_id(a), vertex_id(b));
-        const auto it = m_second_order_edges[max].find(min);
-        if (it == m_second_order_edges.end()) {
-            return 0.0;
-        }
-        return it->second;
+        return m_second_order_edges[max][min];
     }
 
     void set_adjoint(const Variable& v, const double adj)
