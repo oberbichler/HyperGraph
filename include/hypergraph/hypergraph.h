@@ -259,25 +259,43 @@ public:     // methods
         vertex.set_second_order_weight(second_order_weight);
     }
 
-    inline double self_second_order_edge(index a) const
+    template <typename T>
+    inline index vertex_id(const T& item)
     {
-        return m_self_second_order_edges[a];
+        if constexpr(std::is_same<T, index>::value) {
+            return item;
+        }
+        if constexpr(std::is_same<T, Variable>::value) {
+            return item.id();
+        }
+        if constexpr(std::is_same<T, Edge>::value) {
+            return item.to();
+        }
     }
 
-    inline double& self_second_order_edge(index a)
+    template <typename T>
+    inline double self_second_order_edge(T a) const
     {
-        return m_self_second_order_edges[a];
+        return m_self_second_order_edges[vertex_id(a)];
     }
 
-    inline double second_order_edge(index a, index b) const
+    template <typename T>
+    inline double& self_second_order_edge(T a)
     {
-        const auto [min, max] = std::minmax(a, b);
+        return m_self_second_order_edges[vertex_id(a)];
+    }
+
+    template <typename T>
+    inline double second_order_edge(T a, T b) const
+    {
+        const auto [min, max] = std::minmax(vertex_id(a), vertex_id(b));
         return m_second_order_edges[max].at(min);
     }
 
-    inline double& second_order_edge(index a, index b)
+    template <typename T>
+    inline double& second_order_edge(T a, T b)
     {
-        const auto [min, max] = std::minmax(a, b);
+        const auto [min, max] = std::minmax(vertex_id(a), vertex_id(b));
         return m_second_order_edges[max][min];
     }
 
@@ -292,9 +310,9 @@ public:     // methods
 
     double get_adjoint(const Variable& i, const Variable& j) {
         if (i.id() == j.id()) {
-            return self_second_order_edge(i.id());
+            return self_second_order_edge(i);
         } else {
-            return second_order_edge(i.id(), j.id());
+            return second_order_edge(i, j);
         }
     }
 
@@ -314,9 +332,9 @@ public:     // methods
     void push_edge(const Edge& foEdge, const Edge& soEdge)
     {
         if (foEdge.to() == soEdge.to()) {
-            self_second_order_edge(foEdge.to()) += 2 * foEdge.weight() * soEdge.weight();
+            self_second_order_edge(foEdge) += 2 * foEdge.weight() * soEdge.weight();
         } else {
-            second_order_edge(foEdge.to(), soEdge.to()) = foEdge.weight() * soEdge.weight();
+            second_order_edge(foEdge, soEdge) = foEdge.weight() * soEdge.weight();
         }
     }
 
@@ -356,13 +374,13 @@ public:     // methods
                 }
             }
             if (self_second_order_edge(vid) != 0.0) {
-                self_second_order_edge(e1.to()) += e1.weight() * e1.weight() * self_second_order_edge(vid);
+                self_second_order_edge(e1) += e1.weight() * e1.weight() * self_second_order_edge(vid);
                 if (e2.to() != vid) {
-                    self_second_order_edge(e2.to()) += e2.weight() * e2.weight() * self_second_order_edge(vid);
+                    self_second_order_edge(e2) += e2.weight() * e2.weight() * self_second_order_edge(vid);
                     if (e1.to() == e2.to()) {
-                        self_second_order_edge(e2.to()) += 2.0 * e1.weight() * e2.weight() * self_second_order_edge(vid);
+                        self_second_order_edge(e2) += 2.0 * e1.weight() * e2.weight() * self_second_order_edge(vid);
                     } else {
-                        second_order_edge(e1.to(), e2.to()) = e1.weight() * e2.weight() * self_second_order_edge(vid);
+                        second_order_edge(e1, e2) = e1.weight() * e2.weight() * self_second_order_edge(vid);
                     }
                 }
             }
@@ -371,11 +389,11 @@ public:     // methods
             if (a != 0.0) {
                 if (vertex.second_order_weight() != 0.0) {
                     if (e2.to() == vid) {
-                        self_second_order_edge(e1.to()) += a * vertex.second_order_weight();
+                        self_second_order_edge(e1) += a * vertex.second_order_weight();
                     } else if (e1.to() == e2.to()) {
-                        self_second_order_edge(e1.to()) += 2.0 * a * vertex.second_order_weight();
+                        self_second_order_edge(e1) += 2.0 * a * vertex.second_order_weight();
                     } else {
-                        second_order_edge(e1.to(), e2.to()) = a * vertex.second_order_weight();
+                        second_order_edge(e1, e2) = a * vertex.second_order_weight();
                     }
                 }
 
