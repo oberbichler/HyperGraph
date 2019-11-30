@@ -723,7 +723,7 @@ HYPERGRAPH_INLINE Variable operator-(const double lhs, const Variable& rhs)
     HyperGraph* graph = rhs.graph();
 
     const Variable result = graph->new_tmp_variable(lhs - rhs.value());
-    graph->add_edge(result, rhs, double(-1.0), 0.0);
+    graph->add_edge(result, rhs, -1.0, 0.0);
     return result;
 }
 
