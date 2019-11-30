@@ -57,9 +57,8 @@ inline index vertex_id(const T& item)
 }
 
 class Variable {
-private: // info
+private: // types
     using Type = Variable;
-    inline static const std::string s_name = "Variable";
 
 private: // variables
     HyperGraph* m_graph;
