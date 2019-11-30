@@ -8,7 +8,7 @@ from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
 from distutils.version import LooseVersion
 
-HYPERGRAPH_VERSION = '0.4.0'
+HYPERGRAPH_VERSION = '0.5.0'
 
 class CMakeExtension(Extension):
     def __init__(self, name, sourcedir=''):
