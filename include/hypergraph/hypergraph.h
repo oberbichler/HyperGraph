@@ -413,19 +413,6 @@ public: // methods
         }
     }
 
-    index single_edge_propagate(index x, double& a)
-    {
-        bool cont = vertex(x).edge1().to() != x && vertex(x).edge2().to() == x;
-
-        while (cont) {
-            a *= vertex(x).edge1().weight();
-            x = vertex(x).edge1().to();
-            cont = vertex(x).edge1().to() != x && vertex(x).edge2().to() == x;
-        }
-
-        return x;
-    }
-
     void push_edge(const Edge& fo_edge, const Edge& so_edge)
     {
         if (fo_edge.to() == so_edge.to()) {
