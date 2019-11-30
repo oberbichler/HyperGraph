@@ -10,30 +10,46 @@
 
 namespace hypergraph {
 
+#if defined(_MSC_VER)
+#  define HYPERGRAPH_INLINE                 __forceinline
+#else
+#  define HYPERGRAPH_INLINE                 __attribute__ ((always_inline)) inline
+#endif
+
 using index = std::ptrdiff_t;
 
 template <typename TContainer>
-index length(const TContainer& container)
+HYPERGRAPH_INLINE index length(const TContainer& container)
 {
     return static_cast<index>(container.size());
+}
+
+template <typename T>
+HYPERGRAPH_INLINE std::pair<T, T> minmax(const T a, const T b)
+{
+    if (a < b) {
+        return {a, b};
+    } else {
+        return {b, a};
+    }
 }
 
 class HyperGraph;
 class Variable;
 class Edge;
 
-inline Variable abs(const Variable& x);
-inline Variable pow(const Variable& x, const double a);
-inline Variable acos(const Variable& x);
-inline Variable asin(const Variable& x);
-inline Variable atan(const Variable& x);
-inline Variable cos(const Variable& x);
-inline Variable sin(const Variable& x);
-inline Variable sqrt(const Variable& x);
-inline Variable tan(const Variable& x);
+HYPERGRAPH_INLINE Variable abs(const Variable& x);
+HYPERGRAPH_INLINE Variable pow(const Variable& x, const double a);
+HYPERGRAPH_INLINE Variable acos(const Variable& x);
+HYPERGRAPH_INLINE Variable asin(const Variable& x);
+HYPERGRAPH_INLINE Variable atan(const Variable& x);
+HYPERGRAPH_INLINE Variable cos(const Variable& x);
+HYPERGRAPH_INLINE Variable sin(const Variable& x);
+HYPERGRAPH_INLINE Variable sqrt(const Variable& x);
+HYPERGRAPH_INLINE Variable tan(const Variable& x);
 
 template <typename T>
-inline index vertex_id(const T& item)
+HYPERGRAPH_INLINE index vertex_id(const T& item)
 {
     if constexpr (std::is_same<T, index>::value) {
         return item;
@@ -47,9 +63,8 @@ inline index vertex_id(const T& item)
 }
 
 class Variable {
-private: // info
+private: // types
     using Type = Variable;
-    inline static const std::string s_name = "Variable";
 
 private: // variables
     HyperGraph* m_graph;
@@ -225,17 +240,6 @@ public: // methods
         return m_edge1;
     }
 
-    void set_edge1(const Edge value)
-    {
-        m_edge1 = value;
-    }
-
-    template <typename T>
-    void set_edge1(const T to, const double weight)
-    {
-        m_edge1 = {vertex_id(to), weight};
-    }
-
     Edge& edge1()
     {
         return m_edge1;
@@ -244,17 +248,6 @@ public: // methods
     const Edge& edge2() const
     {
         return m_edge2;
-    }
-
-    void set_edge2(const Edge value)
-    {
-        m_edge2 = value;
-    }
-
-    template <typename T>
-    void set_edge2(const T to, const double weight)
-    {
-        m_edge2 = {vertex_id(to), weight};
     }
 
     Edge& edge2()
@@ -267,11 +260,6 @@ public: // methods
         return m_weight;
     }
 
-    void set_weight(const double value)
-    {
-        m_weight = value;
-    }
-
     double& weight()
     {
         return m_weight;
@@ -282,9 +270,9 @@ public: // methods
         return m_second_order_weight;
     }
 
-    void set_second_order_weight(const double value)
+    double& second_order_weight()
     {
-        m_second_order_weight = value;
+        return m_second_order_weight;
     }
 };
 
@@ -311,9 +299,7 @@ public: // methods
     {
         const index id = length(m_vertices);
         m_vertices.emplace_back(id);
-        Variable variable(this, value, id);
-        m_variables.push_back(variable);
-        return variable;
+        return m_variables.emplace_back(this, value, id);
     }
 
     std::vector<Variable> new_variables(const std::vector<double>& values)
@@ -328,51 +314,46 @@ public: // methods
     void add_edge(const Variable& c, const Variable& p, const double w, const double second_order_weight)
     {
         Vertex& v = vertex(c);
-        v.set_edge1(p, w);
-        v.set_second_order_weight(second_order_weight);
+        v.edge1() = {vertex_id(p), w};
+        v.second_order_weight() = second_order_weight;
     }
 
     void add_edge(const Variable& c, const Variable& p1, const Variable& p2, const double w1, const double w2, const double second_order_weight)
     {
         Vertex& v = vertex(c);
-        v.set_edge1(p1, w1);
-        v.set_edge2(p2, w2);
-        v.set_second_order_weight(second_order_weight);
+        v.edge1() = {vertex_id(p1), w1};
+        v.edge2() = {vertex_id(p2), w2};
+        v.second_order_weight() = second_order_weight;
     }
 
     template <typename T>
-    inline Vertex vertex(T a) const
+    HYPERGRAPH_INLINE Vertex vertex(T a) const
     {
         return m_vertices[vertex_id(a)];
     }
 
     template <typename T>
-    inline Vertex& vertex(T a)
+    HYPERGRAPH_INLINE Vertex& vertex(T a)
     {
         return m_vertices[vertex_id(a)];
     }
 
     template <typename T>
-    inline double self_second_order_edge(T a) const
+    HYPERGRAPH_INLINE double self_second_order_edge(T a) const
     {
         return m_self_second_order_edges[vertex_id(a)];
     }
 
     template <typename T>
-    inline double& self_second_order_edge(T a)
+    HYPERGRAPH_INLINE double& self_second_order_edge(T a)
     {
         return m_self_second_order_edges[vertex_id(a)];
     }
 
     template <typename T>
-    inline double second_order_edge(T a, T b) const
+    HYPERGRAPH_INLINE double second_order_edge(T a, T b) const
     {
-        index min = vertex_id(a);
-        index max = vertex_id(b);
-
-        if (min > max) {
-            std::swap(min, max);
-        }
+        const auto [min, max] = minmax(vertex_id(a), vertex_id(b));
 
         const auto it = m_second_order_edges[max].find(min);
         if (it == m_second_order_edges[max].end()) {
@@ -382,21 +363,16 @@ public: // methods
     }
 
     template <typename T>
-    inline double& second_order_edge(T a, T b)
+    HYPERGRAPH_INLINE double& second_order_edge(T a, T b)
     {
-        index min = vertex_id(a);
-        index max = vertex_id(b);
-
-        if (min > max) {
-            std::swap(min, max);
-        }
+        const auto [min, max] = minmax(vertex_id(a), vertex_id(b));
 
         return m_second_order_edges[max][min];
     }
 
     void set_adjoint(const Variable& variable, const double value)
     {
-        vertex(variable).set_weight(value);
+        vertex(variable).weight() = value;
     }
 
     double get_adjoint(const Variable& variable) const
@@ -431,7 +407,7 @@ public: // methods
         }
 
         for (auto& it : m_vertices) {
-            it.set_weight(0.0);
+            it.weight() = 0.0;
         }
     }
 
@@ -590,97 +566,97 @@ public: // python
     }
 };
 
-inline bool operator<(const Variable& lhs, const Variable& rhs)
+HYPERGRAPH_INLINE bool operator<(const Variable& lhs, const Variable& rhs)
 {
     return lhs.value() < rhs.value();
 }
 
-inline bool operator<(const double lhs, const Variable& rhs)
+HYPERGRAPH_INLINE bool operator<(const double lhs, const Variable& rhs)
 {
     return lhs < rhs.value();
 }
 
-inline bool operator<(const Variable& lhs, const double rhs)
+HYPERGRAPH_INLINE bool operator<(const Variable& lhs, const double rhs)
 {
     return lhs.value() < rhs;
 }
 
-inline bool operator<=(const Variable& lhs, const Variable& rhs)
+HYPERGRAPH_INLINE bool operator<=(const Variable& lhs, const Variable& rhs)
 {
     return lhs.value() <= rhs.value();
 }
 
-inline bool operator<=(const double lhs, const Variable& rhs)
+HYPERGRAPH_INLINE bool operator<=(const double lhs, const Variable& rhs)
 {
     return lhs <= rhs.value();
 }
 
-inline bool operator<=(const Variable& lhs, const double rhs)
+HYPERGRAPH_INLINE bool operator<=(const Variable& lhs, const double rhs)
 {
     return lhs.value() <= rhs;
 }
 
-inline bool operator>(const Variable& lhs, const Variable& rhs)
+HYPERGRAPH_INLINE bool operator>(const Variable& lhs, const Variable& rhs)
 {
     return lhs.value() > rhs.value();
 }
 
-inline bool operator>(const double lhs, const Variable& rhs)
+HYPERGRAPH_INLINE bool operator>(const double lhs, const Variable& rhs)
 {
     return lhs > rhs.value();
 }
 
-inline bool operator>(const Variable& lhs, const double rhs)
+HYPERGRAPH_INLINE bool operator>(const Variable& lhs, const double rhs)
 {
     return lhs.value() > rhs;
 }
 
-inline bool operator>=(const Variable& lhs, const Variable& rhs)
+HYPERGRAPH_INLINE bool operator>=(const Variable& lhs, const Variable& rhs)
 {
     return lhs.value() >= rhs.value();
 }
 
-inline bool operator>=(const double lhs, const Variable& rhs)
+HYPERGRAPH_INLINE bool operator>=(const double lhs, const Variable& rhs)
 {
     return lhs >= rhs.value();
 }
 
-inline bool operator>=(const Variable& lhs, const double rhs)
+HYPERGRAPH_INLINE bool operator>=(const Variable& lhs, const double rhs)
 {
     return lhs.value() >= rhs;
 }
 
-inline bool operator==(const Variable& lhs, const Variable& rhs)
+HYPERGRAPH_INLINE bool operator==(const Variable& lhs, const Variable& rhs)
 {
     return lhs.value() == rhs.value();
 }
 
-inline bool operator==(const double lhs, const Variable& rhs)
+HYPERGRAPH_INLINE bool operator==(const double lhs, const Variable& rhs)
 {
     return lhs == rhs.value();
 }
 
-inline bool operator==(const Variable& lhs, const double rhs)
+HYPERGRAPH_INLINE bool operator==(const Variable& lhs, const double rhs)
 {
     return lhs.value() == rhs;
 }
 
-inline bool operator!=(const Variable& lhs, const Variable& rhs)
+HYPERGRAPH_INLINE bool operator!=(const Variable& lhs, const Variable& rhs)
 {
     return lhs.value() != rhs.value();
 }
 
-inline bool operator!=(const double lhs, const Variable& rhs)
+HYPERGRAPH_INLINE bool operator!=(const double lhs, const Variable& rhs)
 {
     return lhs != rhs.value();
 }
 
-inline bool operator!=(const Variable& lhs, const double rhs)
+HYPERGRAPH_INLINE bool operator!=(const Variable& lhs, const double rhs)
 {
     return lhs.value() != rhs;
 }
 
-inline Variable operator-(const Variable& x)
+HYPERGRAPH_INLINE Variable operator-(const Variable& x)
 {
     HyperGraph* graph = x.graph();
 
@@ -689,7 +665,7 @@ inline Variable operator-(const Variable& x)
     return result;
 }
 
-inline Variable operator+(const Variable& lhs, const Variable& rhs)
+HYPERGRAPH_INLINE Variable operator+(const Variable& lhs, const Variable& rhs)
 {
     HyperGraph* graph = lhs.graph();
 
@@ -698,7 +674,7 @@ inline Variable operator+(const Variable& lhs, const Variable& rhs)
     return result;
 }
 
-inline Variable operator+(const Variable& lhs, const double rhs)
+HYPERGRAPH_INLINE Variable operator+(const Variable& lhs, const double rhs)
 {
     HyperGraph* graph = lhs.graph();
 
@@ -707,24 +683,24 @@ inline Variable operator+(const Variable& lhs, const double rhs)
     return result;
 }
 
-inline Variable operator+(const double lhs, const Variable& rhs)
+HYPERGRAPH_INLINE Variable operator+(const double lhs, const Variable& rhs)
 {
     return rhs + lhs;
 }
 
-inline Variable& operator+=(Variable& lhs, const Variable& rhs)
+HYPERGRAPH_INLINE Variable& operator+=(Variable& lhs, const Variable& rhs)
 {
     lhs = lhs + rhs;
     return lhs;
 }
 
-inline Variable& operator+=(Variable& lhs, const double rhs)
+HYPERGRAPH_INLINE Variable& operator+=(Variable& lhs, const double rhs)
 {
     lhs = lhs + rhs;
     return lhs;
 }
 
-inline Variable operator-(const Variable& lhs, const Variable& rhs)
+HYPERGRAPH_INLINE Variable operator-(const Variable& lhs, const Variable& rhs)
 {
     HyperGraph* graph = lhs.graph();
 
@@ -733,7 +709,7 @@ inline Variable operator-(const Variable& lhs, const Variable& rhs)
     return result;
 }
 
-inline Variable operator-(const Variable& lhs, const double rhs)
+HYPERGRAPH_INLINE Variable operator-(const Variable& lhs, const double rhs)
 {
     HyperGraph* graph = lhs.graph();
 
@@ -742,7 +718,7 @@ inline Variable operator-(const Variable& lhs, const double rhs)
     return result;
 }
 
-inline Variable operator-(const double lhs, const Variable& rhs)
+HYPERGRAPH_INLINE Variable operator-(const double lhs, const Variable& rhs)
 {
     HyperGraph* graph = rhs.graph();
 
@@ -751,19 +727,19 @@ inline Variable operator-(const double lhs, const Variable& rhs)
     return result;
 }
 
-inline Variable& operator-=(Variable& lhs, const Variable& rhs)
+HYPERGRAPH_INLINE Variable& operator-=(Variable& lhs, const Variable& rhs)
 {
     lhs = lhs - rhs;
     return lhs;
 }
 
-inline Variable& operator-=(Variable& lhs, const double rhs)
+HYPERGRAPH_INLINE Variable& operator-=(Variable& lhs, const double rhs)
 {
     lhs = lhs - rhs;
     return lhs;
 }
 
-inline Variable operator*(const Variable& lhs, const Variable& rhs)
+HYPERGRAPH_INLINE Variable operator*(const Variable& lhs, const Variable& rhs)
 {
     HyperGraph* graph = lhs.graph();
 
@@ -772,7 +748,7 @@ inline Variable operator*(const Variable& lhs, const Variable& rhs)
     return result;
 }
 
-inline Variable operator*(const Variable& lhs, const double rhs)
+HYPERGRAPH_INLINE Variable operator*(const Variable& lhs, const double rhs)
 {
     HyperGraph* graph = lhs.graph();
 
@@ -781,24 +757,24 @@ inline Variable operator*(const Variable& lhs, const double rhs)
     return result;
 }
 
-inline Variable operator*(const double lhs, const Variable& rhs)
+HYPERGRAPH_INLINE Variable operator*(const double lhs, const Variable& rhs)
 {
     return rhs * lhs;
 }
 
-inline Variable& operator*=(Variable& lhs, const Variable& rhs)
+HYPERGRAPH_INLINE Variable& operator*=(Variable& lhs, const Variable& rhs)
 {
     lhs = lhs * rhs;
     return lhs;
 }
 
-inline Variable& operator*=(Variable& lhs, const double rhs)
+HYPERGRAPH_INLINE Variable& operator*=(Variable& lhs, const double rhs)
 {
     lhs = lhs * rhs;
     return lhs;
 }
 
-inline Variable inv(const Variable& x)
+HYPERGRAPH_INLINE Variable inv(const Variable& x)
 {
     HyperGraph* graph = x.graph();
 
@@ -810,33 +786,33 @@ inline Variable inv(const Variable& x)
     return result;
 }
 
-inline double inv(const double x)
+HYPERGRAPH_INLINE double inv(const double x)
 {
     return 1.0 / x;
 }
 
-inline Variable operator/(const Variable& lhs, const Variable& rhs)
+HYPERGRAPH_INLINE Variable operator/(const Variable& lhs, const Variable& rhs)
 {
     return lhs * inv(rhs);
 }
 
-inline Variable operator/(const Variable& lhs, const double rhs)
+HYPERGRAPH_INLINE Variable operator/(const Variable& lhs, const double rhs)
 {
     return lhs * inv(rhs);
 }
 
-inline Variable operator/(const double lhs, const Variable& rhs)
+HYPERGRAPH_INLINE Variable operator/(const double lhs, const Variable& rhs)
 {
     return lhs * inv(rhs);
 }
 
-inline Variable& operator/=(Variable& lhs, const Variable& rhs)
+HYPERGRAPH_INLINE Variable& operator/=(Variable& lhs, const Variable& rhs)
 {
     lhs = lhs / rhs;
     return lhs;
 }
 
-inline Variable& operator/=(Variable& lhs, const double rhs)
+HYPERGRAPH_INLINE Variable& operator/=(Variable& lhs, const double rhs)
 {
     lhs = lhs / rhs;
     return lhs;
@@ -854,7 +830,7 @@ using std::sin;
 using std::sqrt;
 using std::tan;
 
-inline Variable abs(const Variable& x)
+HYPERGRAPH_INLINE Variable abs(const Variable& x)
 {
     if (x.value() > 0) {
         return x;
@@ -863,7 +839,7 @@ inline Variable abs(const Variable& x)
     }
 }
 
-inline Variable square(const Variable& x)
+HYPERGRAPH_INLINE Variable square(const Variable& x)
 {
     HyperGraph* graph = x.graph();
 
@@ -873,7 +849,7 @@ inline Variable square(const Variable& x)
     return result;
 }
 
-inline Variable sqrt(const Variable& x)
+HYPERGRAPH_INLINE Variable sqrt(const Variable& x)
 {
     HyperGraph* graph = x.graph();
 
@@ -884,7 +860,7 @@ inline Variable sqrt(const Variable& x)
     return result;
 }
 
-inline Variable pow(const Variable& x, const double a)
+HYPERGRAPH_INLINE Variable pow(const Variable& x, const double a)
 {
     HyperGraph* graph = x.graph();
 
@@ -894,7 +870,7 @@ inline Variable pow(const Variable& x, const double a)
     return result;
 }
 
-inline Variable exp(const Variable& x)
+HYPERGRAPH_INLINE Variable exp(const Variable& x)
 {
     HyperGraph* graph = x.graph();
 
@@ -904,7 +880,7 @@ inline Variable exp(const Variable& x)
     return result;
 }
 
-inline Variable log(const Variable& x)
+HYPERGRAPH_INLINE Variable log(const Variable& x)
 {
     HyperGraph* graph = x.graph();
 
@@ -915,7 +891,7 @@ inline Variable log(const Variable& x)
     return result;
 }
 
-inline Variable cos(const Variable& x)
+HYPERGRAPH_INLINE Variable cos(const Variable& x)
 {
     HyperGraph* graph = x.graph();
 
@@ -925,7 +901,7 @@ inline Variable cos(const Variable& x)
     return result;
 }
 
-inline Variable sin(const Variable& x)
+HYPERGRAPH_INLINE Variable sin(const Variable& x)
 {
     HyperGraph* graph = x.graph();
 
@@ -935,7 +911,7 @@ inline Variable sin(const Variable& x)
     return result;
 }
 
-inline Variable tan(const Variable& x)
+HYPERGRAPH_INLINE Variable tan(const Variable& x)
 {
     HyperGraph* graph = x.graph();
 
@@ -947,7 +923,7 @@ inline Variable tan(const Variable& x)
     return result;
 }
 
-inline Variable acos(const Variable& x)
+HYPERGRAPH_INLINE Variable acos(const Variable& x)
 {
     HyperGraph* graph = x.graph();
 
@@ -959,7 +935,7 @@ inline Variable acos(const Variable& x)
     return result;
 }
 
-inline Variable asin(const Variable& x)
+HYPERGRAPH_INLINE Variable asin(const Variable& x)
 {
     HyperGraph* graph = x.graph();
 
@@ -971,7 +947,7 @@ inline Variable asin(const Variable& x)
     return result;
 }
 
-inline Variable atan(const Variable& x)
+HYPERGRAPH_INLINE Variable atan(const Variable& x)
 {
     HyperGraph* graph = x.graph();
 
