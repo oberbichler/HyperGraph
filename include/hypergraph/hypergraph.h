@@ -547,7 +547,7 @@ public: // methods
         }
     }
 
-    Eigen::MatrixXd h(bool full = false) const
+    Eigen::MatrixXd h(const bool full = false) const
     {
         const index n = length(m_variables);
 
@@ -558,7 +558,7 @@ public: // methods
         return result;
     }
 
-    void h(Eigen::Ref<Eigen::MatrixXd> out, bool full = false) const
+    void h(Eigen::Ref<Eigen::MatrixXd> out, const bool full = false) const
     {
         const index n = length(m_variables);
 
