@@ -18,6 +18,16 @@ index length(const TContainer& container)
     return static_cast<index>(container.size());
 }
 
+template <typename T>
+inline std::pair<T, T> minmax(const T a, const T b)
+{
+    if (a < b) {
+        return {a, b};
+    } else {
+        return {b, a};
+    }
+}
+
 class HyperGraph;
 class Variable;
 class Edge;
@@ -365,12 +375,7 @@ public: // methods
     template <typename T>
     inline double second_order_edge(T a, T b) const
     {
-        index min = vertex_id(a);
-        index max = vertex_id(b);
-
-        if (min > max) {
-            std::swap(min, max);
-        }
+        const auto [min, max] = minmax(vertex_id(a), vertex_id(b));
 
         const auto it = m_second_order_edges[max].find(min);
         if (it == m_second_order_edges[max].end()) {
@@ -382,12 +387,7 @@ public: // methods
     template <typename T>
     inline double& second_order_edge(T a, T b)
     {
-        index min = vertex_id(a);
-        index max = vertex_id(b);
-
-        if (min > max) {
-            std::swap(min, max);
-        }
+        const auto [min, max] = minmax(vertex_id(a), vertex_id(b));
 
         return m_second_order_edges[max][min];
     }
