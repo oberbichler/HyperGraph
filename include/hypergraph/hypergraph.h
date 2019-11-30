@@ -311,9 +311,7 @@ public: // methods
     {
         const index id = length(m_vertices);
         m_vertices.emplace_back(id);
-        Variable variable(this, value, id);
-        m_variables.push_back(variable);
-        return variable;
+        return m_variables.emplace_back(this, value, id);
     }
 
     std::vector<Variable> new_variables(const std::vector<double>& values)
