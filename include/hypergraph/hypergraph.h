@@ -843,7 +843,7 @@ HYPERGRAPH_INLINE Variable square(const Variable& x)
 {
     HyperGraph* graph = x.graph();
 
-    const double sq = x.value() * x.value();
+    const auto sq = x.value() * x.value();
     const Variable result = graph->new_tmp_variable(sq);
     graph->add_edge(result, x, 2.0 * x.value(), 0.0);
     return result;
@@ -851,109 +851,134 @@ HYPERGRAPH_INLINE Variable square(const Variable& x)
 
 HYPERGRAPH_INLINE Variable sqrt(const Variable& x)
 {
+    using std::sqrt;
+
     HyperGraph* graph = x.graph();
 
-    const double sqrt = std::sqrt(x.value());
-    const double inv_sqrt = 1.0 / sqrt;
-    const Variable result = graph->new_tmp_variable(sqrt);
+    const auto sqrt_x = sqrt(x.value());
+    const auto inv_sqrt = 1.0 / sqrt_x;
+    const Variable result = graph->new_tmp_variable(sqrt_x);
     graph->add_edge(result, x, 0.5 * inv_sqrt, -0.25 * inv_sqrt / x.value());
     return result;
 }
 
 HYPERGRAPH_INLINE Variable pow(const Variable& x, const double a)
 {
+    using std::pow;
+
     HyperGraph* graph = x.graph();
 
-    const double pow = std::pow(x.value(), a);
-    const Variable result = graph->new_tmp_variable(pow);
-    graph->add_edge(result, x, a * std::pow(x.value(), a - 1.0), a * (a - 1.0) * std::pow(x.value(), a - 2.0));
+    const auto pow_x = pow(x.value(), a);
+    const Variable result = graph->new_tmp_variable(pow_x);
+    graph->add_edge(result, x, a * pow(x.value(), a - 1.0), a * (a - 1.0) * pow(x.value(), a - 2.0));
     return result;
 }
 
 HYPERGRAPH_INLINE Variable exp(const Variable& x)
 {
+    using std::exp;
+
     HyperGraph* graph = x.graph();
 
-    const double exp = std::exp(x.value());
-    const Variable result = graph->new_tmp_variable(exp);
-    graph->add_edge(result, x, exp, exp);
+    const auto exp_x = exp(x.value());
+    const Variable result = graph->new_tmp_variable(exp_x);
+    graph->add_edge(result, x, exp_x, exp_x);
     return result;
 }
 
 HYPERGRAPH_INLINE Variable log(const Variable& x)
 {
+    using std::log;
+
     HyperGraph* graph = x.graph();
 
-    const double log = std::log(x.value());
-    const Variable result = graph->new_tmp_variable(log);
-    const double inv = 1.0 / x.value();
+    const auto log_x = log(x.value());
+    const Variable result = graph->new_tmp_variable(log_x);
+    const auto inv = 1.0 / x.value();
     graph->add_edge(result, x, inv, -inv * inv);
     return result;
 }
 
 HYPERGRAPH_INLINE Variable cos(const Variable& x)
 {
+    using std::cos;
+    using std::sin;
+
     HyperGraph* graph = x.graph();
 
-    const double cos = std::cos(x.value());
-    const Variable result = graph->new_tmp_variable(cos);
-    graph->add_edge(result, x, -std::sin(x.value()), -cos);
+    const auto cos_x = cos(x.value());
+    const Variable result = graph->new_tmp_variable(cos_x);
+    graph->add_edge(result, x, -sin(x.value()), -cos_x);
     return result;
 }
 
 HYPERGRAPH_INLINE Variable sin(const Variable& x)
 {
+    using std::cos;
+    using std::sin;
+
     HyperGraph* graph = x.graph();
 
-    const double sin = std::sin(x.value());
-    const Variable result = graph->new_tmp_variable(sin);
-    graph->add_edge(result, x, std::cos(x.value()), -sin);
+    const auto sin_x = sin(x.value());
+    const Variable result = graph->new_tmp_variable(sin_x);
+    graph->add_edge(result, x, cos(x.value()), -sin_x);
     return result;
 }
 
 HYPERGRAPH_INLINE Variable tan(const Variable& x)
 {
+    using std::tan;
+    using std::cos;
+
     HyperGraph* graph = x.graph();
 
-    const double tan = std::tan(x.value());
-    const double sec = 1.0 / std::cos(x.value());
-    const double sec_sq = sec * sec;
-    const Variable result = graph->new_tmp_variable(tan);
-    graph->add_edge(result, x, sec_sq, 2.0 * tan * sec_sq);
+    const auto tan_x = tan(x.value());
+    const auto sec = 1.0 / cos(x.value());
+    const auto sec_sq = sec * sec;
+    const Variable result = graph->new_tmp_variable(tan_x);
+    graph->add_edge(result, x, sec_sq, 2.0 * tan_x * sec_sq);
     return result;
 }
 
 HYPERGRAPH_INLINE Variable acos(const Variable& x)
 {
+    using std::acos;
+    using std::sqrt;
+
     HyperGraph* graph = x.graph();
 
-    const double acos = std::acos(x.value());
-    const Variable result = graph->new_tmp_variable(acos);
-    const double tmp = 1.0 / (1.0 - x.value() * x.value());
-    const double neg_tmp_sqrt = -std::sqrt(tmp);
+    const auto acos_x = acos(x.value());
+    const Variable result = graph->new_tmp_variable(acos_x);
+    const auto tmp = 1.0 / (1.0 - x.value() * x.value());
+    const auto neg_tmp_sqrt = -sqrt(tmp);
     graph->add_edge(result, x, neg_tmp_sqrt, x.value() * neg_tmp_sqrt * tmp);
     return result;
 }
 
 HYPERGRAPH_INLINE Variable asin(const Variable& x)
 {
+    using std::asin;
+    using std::sqrt;
+
     HyperGraph* graph = x.graph();
 
-    const double asin = std::asin(x.value());
-    const Variable result = graph->new_tmp_variable(asin);
-    const double tmp = 1.0 / (1.0 - x.value() * x.value());
-    const double tmp_sqrt = std::sqrt(tmp);
+    const auto asin_x = asin(x.value());
+    const Variable result = graph->new_tmp_variable(asin_x);
+    const auto tmp = 1.0 / (1.0 - x.value() * x.value());
+    const auto tmp_sqrt = sqrt(tmp);
     graph->add_edge(result, x, tmp_sqrt, x.value() * tmp_sqrt * tmp);
     return result;
 }
 
 HYPERGRAPH_INLINE Variable atan(const Variable& x)
 {
+    using std::atan;
+
     HyperGraph* graph = x.graph();
 
-    const double atan = std::atan(x.value());
-    const Variable result = graph->new_tmp_variable(atan);
-    const double tmp = 1 / (1 + x.value() * x.value());
+    const auto atan_x = atan(x.value());
+    const Variable result = graph->new_tmp_variable(atan_x);
+    const auto tmp = 1 / (1 + x.value() * x.value());
     graph->add_edge(result, x, tmp, -2 * x.value() * tmp * tmp);
     return result;
 }
