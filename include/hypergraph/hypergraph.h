@@ -13,7 +13,7 @@ namespace hypergraph {
 using index = std::ptrdiff_t;
 
 template <typename TContainer>
-index length(const TContainer& container)
+inline index length(const TContainer& container)
 {
     return static_cast<index>(container.size());
 }
