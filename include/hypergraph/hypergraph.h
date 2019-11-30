@@ -461,7 +461,7 @@ public: // methods
                 }
             }
 
-            const double a = v.weight();
+            const auto a = v.weight();
 
             if (a != 0.0) {
                 if (v.second_order_weight() != 0.0) {
