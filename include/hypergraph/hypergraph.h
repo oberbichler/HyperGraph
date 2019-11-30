@@ -394,36 +394,23 @@ public: // methods
         return m_second_order_edges[max][min];
     }
 
-    void set_adjoint(const Variable& v, const double adj)
+    void set_adjoint(const Variable& variable, const double value)
     {
-        vertex(v).set_weight(adj);
+        vertex(variable).set_weight(value);
     }
 
-    double get_adjoint(const Variable& v) const
+    double get_adjoint(const Variable& variable) const
     {
-        return vertex(v).weight();
+        return vertex(variable).weight();
     }
 
-    double get_adjoint(const Variable& i, const Variable& j) const
+    double get_adjoint(const Variable& variable_i, const Variable& variable_j) const
     {
-        if (i.id() == j.id()) {
-            return self_second_order_edge(i);
+        if (variable_i.id() == variable_j.id()) {
+            return self_second_order_edge(variable_i);
         } else {
-            return second_order_edge(i, j);
+            return second_order_edge(variable_i, variable_j);
         }
-    }
-
-    index single_edge_propagate(index x, double& a)
-    {
-        bool cont = vertex(x).edge1().to() != x && vertex(x).edge2().to() == x;
-
-        while (cont) {
-            a *= vertex(x).edge1().weight();
-            x = vertex(x).edge1().to();
-            cont = vertex(x).edge1().to() != x && vertex(x).edge2().to() == x;
-        }
-
-        return x;
     }
 
     void push_edge(const Edge& fo_edge, const Edge& so_edge)
@@ -547,7 +534,7 @@ public: // methods
         }
     }
 
-    Eigen::MatrixXd h(bool full = false) const
+    Eigen::MatrixXd h(const bool full = false) const
     {
         const index n = length(m_variables);
 
@@ -558,7 +545,7 @@ public: // methods
         return result;
     }
 
-    void h(Eigen::Ref<Eigen::MatrixXd> out, bool full = false) const
+    void h(Eigen::Ref<Eigen::MatrixXd> out, const bool full = false) const
     {
         const index n = length(m_variables);
 
