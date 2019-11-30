@@ -240,17 +240,6 @@ public: // methods
         return m_edge1;
     }
 
-    void set_edge1(const Edge value)
-    {
-        m_edge1 = value;
-    }
-
-    template <typename T>
-    void set_edge1(const T to, const double weight)
-    {
-        m_edge1 = {vertex_id(to), weight};
-    }
-
     Edge& edge1()
     {
         return m_edge1;
@@ -259,17 +248,6 @@ public: // methods
     const Edge& edge2() const
     {
         return m_edge2;
-    }
-
-    void set_edge2(const Edge value)
-    {
-        m_edge2 = value;
-    }
-
-    template <typename T>
-    void set_edge2(const T to, const double weight)
-    {
-        m_edge2 = {vertex_id(to), weight};
     }
 
     Edge& edge2()
@@ -282,11 +260,6 @@ public: // methods
         return m_weight;
     }
 
-    void set_weight(const double value)
-    {
-        m_weight = value;
-    }
-
     double& weight()
     {
         return m_weight;
@@ -297,9 +270,9 @@ public: // methods
         return m_second_order_weight;
     }
 
-    void set_second_order_weight(const double value)
+    double& second_order_weight()
     {
-        m_second_order_weight = value;
+        return m_second_order_weight;
     }
 };
 
@@ -341,16 +314,16 @@ public: // methods
     void add_edge(const Variable& c, const Variable& p, const double w, const double second_order_weight)
     {
         Vertex& v = vertex(c);
-        v.set_edge1(p, w);
-        v.set_second_order_weight(second_order_weight);
+        v.edge1() = {vertex_id(p), w};
+        v.second_order_weight() = second_order_weight;
     }
 
     void add_edge(const Variable& c, const Variable& p1, const Variable& p2, const double w1, const double w2, const double second_order_weight)
     {
         Vertex& v = vertex(c);
-        v.set_edge1(p1, w1);
-        v.set_edge2(p2, w2);
-        v.set_second_order_weight(second_order_weight);
+        v.edge1() = {vertex_id(p1), w1};
+        v.edge2() = {vertex_id(p2), w2};
+        v.second_order_weight() = second_order_weight;
     }
 
     template <typename T>
@@ -399,7 +372,7 @@ public: // methods
 
     void set_adjoint(const Variable& variable, const double value)
     {
-        vertex(variable).set_weight(value);
+        vertex(variable).weight() = value;
     }
 
     double get_adjoint(const Variable& variable) const
@@ -434,7 +407,7 @@ public: // methods
         }
 
         for (auto& it : m_vertices) {
-            it.set_weight(0.0);
+            it.weight() = 0.0;
         }
     }
 
