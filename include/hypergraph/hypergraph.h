@@ -778,9 +778,9 @@ HYPERGRAPH_INLINE Variable inv(const Variable& x)
 {
     HyperGraph* graph = x.graph();
 
-    const double inv_x = 1.0 / x.value();
-    const double inv_x_sq = inv_x * inv_x;
-    const double inv_x_cu = inv_x_sq * inv_x;
+    const auto inv_x = 1.0 / x.value();
+    const auto inv_x_sq = inv_x * inv_x;
+    const auto inv_x_cu = inv_x_sq * inv_x;
     const Variable result = graph->new_tmp_variable(inv_x);
     graph->add_edge(result, x, -inv_x_sq, 2.0 * inv_x_cu);
     return result;
