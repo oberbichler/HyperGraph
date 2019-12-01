@@ -17,6 +17,6 @@ PYBIND11_MODULE(hypergraph, m) {
     namespace py = pybind11;
     using namespace pybind11::literals;
 
-    hypergraph::HyperGraph::register_python(m);
-    hypergraph::Variable::register_python(m);
+    hypergraph::HyperGraph<double>::register_python(m);
+    hypergraph::Variable<double>::register_python(m);
 }
