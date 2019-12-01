@@ -5,6 +5,7 @@
 #include <pybind11/stl_bind.h>
 
 #include <hypergraph/hypergraph.h>
+#include "hypergraph/counting.h"
 
 PYBIND11_MODULE(hypergraph, m) {
     m.doc() = "HyperJet by Thomas Oberbichler";
@@ -19,4 +20,6 @@ PYBIND11_MODULE(hypergraph, m) {
 
     hypergraph::HyperGraph<double>::register_python(m);
     hypergraph::Variable<double>::register_python(m);
+
+    hypergraph::Counting::register_python(m);
 }
