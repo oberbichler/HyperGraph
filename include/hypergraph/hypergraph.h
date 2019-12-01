@@ -786,11 +786,6 @@ HYPERGRAPH_INLINE Variable inv(const Variable& x)
     return result;
 }
 
-HYPERGRAPH_INLINE double inv(const double x)
-{
-    return 1.0 / x;
-}
-
 HYPERGRAPH_INLINE Variable operator/(const Variable& lhs, const Variable& rhs)
 {
     return lhs * inv(rhs);
@@ -798,7 +793,8 @@ HYPERGRAPH_INLINE Variable operator/(const Variable& lhs, const Variable& rhs)
 
 HYPERGRAPH_INLINE Variable operator/(const Variable& lhs, const double rhs)
 {
-    return lhs * inv(rhs);
+    const auto inv = 1.0 / rhs;
+    return lhs * inv;
 }
 
 HYPERGRAPH_INLINE Variable operator/(const double lhs, const Variable& rhs)
