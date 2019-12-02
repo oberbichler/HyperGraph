@@ -11,9 +11,9 @@
 namespace hypergraph {
 
 #if defined(_MSC_VER)
-#  define HYPERGRAPH_INLINE                 __forceinline
+#define HYPERGRAPH_INLINE __forceinline
 #else
-#  define HYPERGRAPH_INLINE                 __attribute__ ((always_inline)) inline
+#define HYPERGRAPH_INLINE __attribute__((always_inline)) inline
 #endif
 
 using index = std::ptrdiff_t;
@@ -998,8 +998,8 @@ HYPERGRAPH_INLINE Variable<T> sin(const Variable<T>& x)
 template <typename T>
 HYPERGRAPH_INLINE Variable<T> tan(const Variable<T>& x)
 {
-    using std::tan;
     using std::cos;
+    using std::tan;
 
     HyperGraph<T>* graph = x.graph();
 
