@@ -19,7 +19,7 @@ pip install hypergraph
 If you use HyperGraph, please refer to the official GitHub repository:
 
 ```
-@misc{HyperJet,
+@misc{HyperGraph,
   author = "Thomas Oberbichler",
   title = "HyperGraph",
   howpublished = "\url{http://github.com/oberbichler/HyperGraph}",
