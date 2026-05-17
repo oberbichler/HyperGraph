@@ -17,10 +17,10 @@ FetchContent_Declare(
     GIT_TAG 3.4.0
     GIT_SHALLOW TRUE
 )
-set(EIGEN_BUILD_DOC OFF CACHE BOOL "" FORCE)
-set(EIGEN_BUILD_TESTING OFF CACHE BOOL "" FORCE)
-set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(eigen)
+FetchContent_Populate(eigen)
+
+add_library(Eigen3::Eigen INTERFACE IMPORTED)
+target_include_directories(Eigen3::Eigen INTERFACE "${eigen_SOURCE_DIR}")
 
 find_package(BLAS QUIET)
 
