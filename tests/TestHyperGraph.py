@@ -286,6 +286,96 @@ class TestHyperGraph(unittest.TestCase):
         assert_array_almost_equal(g, [16/25, 0])
         assert_array_almost_equal(h, [[-384/625, 0], [0, 0]])
 
+    # exponential / logarithmic
+
+    def test_exp(self):
+        graph = hg.HyperGraph()
+
+        a, b = graph.new_variables([2, 3])
+
+        result = a.exp()
+        assert_almost_equal(result.value, np.exp(2))
+
+        graph.compute(result)
+        g = graph.g()
+        h = graph.h()
+        assert_array_almost_equal(g, [np.exp(2), 0])
+        assert_array_almost_equal(h, [[np.exp(2), 0], [0, 0]])
+
+    def test_log(self):
+        graph = hg.HyperGraph()
+
+        a, b = graph.new_variables([2, 3])
+
+        result = a.log()
+        assert_almost_equal(result.value, np.log(2))
+
+        graph.compute(result)
+        g = graph.g()
+        h = graph.h()
+        assert_array_almost_equal(g, [1/2, 0])
+        assert_array_almost_equal(h, [[-1/4, 0], [0, 0]])
+
+    # power / square / abs
+
+    def test_square(self):
+        graph = hg.HyperGraph()
+
+        a, b = graph.new_variables([3, 5])
+
+        result = a.square()
+        assert_almost_equal(result.value, 9)
+
+        graph.compute(result)
+        g = graph.g()
+        h = graph.h()
+        # d(x²)/dx = 2x = 6, d²(x²)/dx² = 2
+        assert_array_almost_equal(g, [6, 0])
+        assert_array_almost_equal(h, [[2, 0], [0, 0]])
+
+    def test_pow(self):
+        graph = hg.HyperGraph()
+
+        a, b = graph.new_variables([2, 3])
+
+        result = a ** 3
+        assert_almost_equal(result.value, 8)
+
+        graph.compute(result)
+        g = graph.g()
+        h = graph.h()
+        # d(x³)/dx = 3x² = 12, d²(x³)/dx² = 6x = 12
+        assert_array_almost_equal(g, [12, 0])
+        assert_array_almost_equal(h, [[12, 0], [0, 0]])
+
+    def test_abs_positive(self):
+        graph = hg.HyperGraph()
+
+        a, b = graph.new_variables([3, 5])
+
+        result = abs(a)
+        assert_almost_equal(result.value, 3)
+
+        graph.compute(result)
+        g = graph.g()
+        h = graph.h()
+        assert_array_almost_equal(g, [1, 0])
+        assert_array_almost_equal(h, [[0, 0], [0, 0]])
+
+    def test_abs_negative(self):
+        graph = hg.HyperGraph()
+
+        a, b = graph.new_variables([-3, 5])
+
+        result = abs(a)
+        assert_almost_equal(result.value, 3)
+
+        graph.compute(result)
+        g = graph.g()
+        h = graph.h()
+        assert_array_almost_equal(g, [-1, 0])
+        assert_array_almost_equal(h, [[0, 0], [0, 0]])
+
     # other
 
     def test_sqrt(self):
@@ -301,6 +391,135 @@ class TestHyperGraph(unittest.TestCase):
         h = graph.h()
         assert_array_almost_equal(g, [1/(2*np.sqrt(5)), 0])
         assert_array_almost_equal(h, [[-1/(20*np.sqrt(5)), 0], [0, 0]])
+
+    # hyperbolic
+
+    def test_sinh(self):
+        graph = hg.HyperGraph()
+
+        a, b = graph.new_variables([2, 3])
+
+        result = a.sinh()
+        assert_almost_equal(result.value, np.sinh(2))
+
+        graph.compute(result)
+        g = graph.g()
+        h = graph.h()
+        # d(sinh)/dx = cosh(x), d²(sinh)/dx² = sinh(x)
+        assert_array_almost_equal(g, [np.cosh(2), 0])
+        assert_array_almost_equal(h, [[np.sinh(2), 0], [0, 0]])
+
+    def test_cosh(self):
+        graph = hg.HyperGraph()
+
+        a, b = graph.new_variables([2, 3])
+
+        result = a.cosh()
+        assert_almost_equal(result.value, np.cosh(2))
+
+        graph.compute(result)
+        g = graph.g()
+        h = graph.h()
+        # d(cosh)/dx = sinh(x), d²(cosh)/dx² = cosh(x)
+        assert_array_almost_equal(g, [np.sinh(2), 0])
+        assert_array_almost_equal(h, [[np.cosh(2), 0], [0, 0]])
+
+    def test_tanh(self):
+        graph = hg.HyperGraph()
+
+        a, b = graph.new_variables([2, 3])
+
+        result = a.tanh()
+        tanh_val = np.tanh(2)
+        sech_sq = 1 - tanh_val**2
+        assert_almost_equal(result.value, tanh_val)
+
+        graph.compute(result)
+        g = graph.g()
+        h = graph.h()
+        # d(tanh)/dx = sech²(x), d²(tanh)/dx² = -2·tanh(x)·sech²(x)
+        assert_array_almost_equal(g, [sech_sq, 0])
+        assert_array_almost_equal(h, [[-2*tanh_val*sech_sq, 0], [0, 0]])
+
+    # inverse hyperbolic
+
+    def test_arcsinh(self):
+        graph = hg.HyperGraph()
+
+        a, b = graph.new_variables([2, 3])
+
+        result = a.arcsinh()
+        assert_almost_equal(result.value, np.arcsinh(2))
+
+        graph.compute(result)
+        g = graph.g()
+        h = graph.h()
+        # d(asinh)/dx = 1/sqrt(1+x²), d²(asinh)/dx² = -x/(1+x²)^(3/2)
+        x = 2.0
+        g1 = 1/np.sqrt(1 + x**2)
+        h1 = -x / (1 + x**2)**1.5
+        assert_array_almost_equal(g, [g1, 0])
+        assert_array_almost_equal(h, [[h1, 0], [0, 0]])
+
+    def test_arccosh(self):
+        graph = hg.HyperGraph()
+
+        a, b = graph.new_variables([2, 3])
+
+        result = a.arccosh()
+        assert_almost_equal(result.value, np.arccosh(2))
+
+        graph.compute(result)
+        g = graph.g()
+        h = graph.h()
+        # d(acosh)/dx = 1/sqrt(x²-1), d²(acosh)/dx² = -x/(x²-1)^(3/2)
+        x = 2.0
+        g1 = 1/np.sqrt(x**2 - 1)
+        h1 = -x / (x**2 - 1)**1.5
+        assert_array_almost_equal(g, [g1, 0])
+        assert_array_almost_equal(h, [[h1, 0], [0, 0]])
+
+    def test_arctanh(self):
+        graph = hg.HyperGraph()
+
+        a, b = graph.new_variables([0.5, 3])
+
+        result = a.arctanh()
+        assert_almost_equal(result.value, np.arctanh(0.5))
+
+        graph.compute(result)
+        g = graph.g()
+        h = graph.h()
+        # d(atanh)/dx = 1/(1-x²), d²(atanh)/dx² = 2x/(1-x²)²
+        x = 0.5
+        g1 = 1 / (1 - x**2)
+        h1 = 2*x / (1 - x**2)**2
+        assert_array_almost_equal(g, [g1, 0])
+        assert_array_almost_equal(h, [[h1, 0], [0, 0]])
+
+    # atan2
+
+    def test_atan2(self):
+        graph = hg.HyperGraph()
+
+        y, x = graph.new_variables([3, 4])
+
+        result = hg.atan2(y, x)
+        assert_almost_equal(result.value, np.arctan2(3, 4))
+
+        graph.compute(result)
+        g = graph.g()
+        h = graph.h(full=True)
+        # ∂atan2/∂y = x/r², ∂atan2/∂x = -y/r²
+        r2 = 3**2 + 4**2  # = 25
+        assert_array_almost_equal(g, [4/r2, -3/r2])
+        # ∂²atan2/∂y² = -2xy/r⁴
+        # ∂²atan2/∂x² = 2xy/r⁴
+        # ∂²atan2/∂y∂x = (y²-x²)/r⁴
+        h_yy = -2*3*4 / r2**2
+        h_xx = 2*3*4 / r2**2
+        h_yx = (3**2 - 4**2) / r2**2
+        assert_array_almost_equal(h, [[h_yy, h_yx], [h_yx, h_xx]])
 
     # vector
 

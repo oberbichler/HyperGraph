@@ -19,4 +19,7 @@ PYBIND11_MODULE(hypergraph, m) {
 
     hypergraph::HyperGraph<double>::register_python(m);
     hypergraph::Variable<double>::register_python(m);
+
+    using Var = hypergraph::Variable<double>;
+    m.def("atan2", [](const Var& y, const Var& x) { return hypergraph::atan2(y, x); }, "y"_a, "x"_a);
 }
