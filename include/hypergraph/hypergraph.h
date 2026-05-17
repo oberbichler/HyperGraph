@@ -914,7 +914,7 @@ HYPERGRAPH_INLINE Variable<T> square(const Variable<T>& x)
 
     const auto sq = x.value() * x.value();
     const Variable<T> result = graph->new_tmp_variable(sq);
-    graph->add_edge(result, x, 2.0 * x.value(), 0.0);
+    graph->add_edge(result, x, 2.0 * x.value(), 2.0);
     return result;
 }
 

@@ -1,0 +1,45 @@
+[build-system]
+requires = ["scikit-build-core>=0.10", "pybind11>=2.13"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "hypergraph"
+version = "0.5.0"
+description = "Reversed mode second order automatic differentiation for python"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.12"
+authors = [
+    { name = "Thomas Oberbichler", email = "thomas.oberbichler@gmail.com" },
+]
+classifiers = [
+    "Programming Language :: C++",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Mathematics",
+]
+dependencies = [
+    "numpy",
+]
+
+[project.urls]
+Homepage = "https://github.com/oberbichler/HyperGraph"
+Repository = "https://github.com/oberbichler/HyperGraph"
+
+[dependency-groups]
+dev = [
+    "pytest",
+]
+
+[tool.scikit-build]
+cmake.version = ">=3.24"
+cmake.build-type = "Release"
+wheel.packages = []
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["Test*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
