@@ -1,33 +1,53 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.24)
+
+project(HyperGraph-py LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-project(HyperGraph-py)
+# --- Dependencies ---
 
-find_package(BLAS)
+include(FetchContent)
 
-include_directories(
-    "include"
-    "external_libraries"
+find_package(pybind11 CONFIG REQUIRED)
+
+FetchContent_Declare(
+    eigen
+    GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
+    GIT_TAG 3.4.0
+    GIT_SHALLOW TRUE
 )
+set(EIGEN_BUILD_DOC OFF CACHE BOOL "" FORCE)
+set(EIGEN_BUILD_TESTING OFF CACHE BOOL "" FORCE)
+set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(eigen)
 
-add_subdirectory(external_libraries/pybind11)
+find_package(BLAS QUIET)
 
-add_definitions(
-    -DEIGEN_DEFAULT_TO_ROW_MAJOR
-    -DHYPERGRAPH_VERSION="${HYPERGRAPH_VERSION}"
-    -DHYPERGRAPH_EXCEPTIONS
-)
+# --- Target ---
 
 pybind11_add_module(hypergraph src/Module.cpp)
 
-if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-    target_compile_options(hypergraph PUBLIC -fsized-deallocation)
+target_include_directories(hypergraph PRIVATE
+    "${CMAKE_SOURCE_DIR}/include"
+    "${CMAKE_SOURCE_DIR}/external_libraries"
+)
+
+target_link_libraries(hypergraph PRIVATE Eigen3::Eigen)
+
+target_compile_definitions(hypergraph PRIVATE
+    EIGEN_DEFAULT_TO_ROW_MAJOR
+    HYPERGRAPH_VERSION="${SKBUILD_PROJECT_VERSION}"
+    HYPERGRAPH_EXCEPTIONS
+)
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    target_compile_options(hypergraph PRIVATE -fsized-deallocation)
 endif()
 
 if(BLAS_FOUND)
-    add_definitions(-DEIGEN_USE_BLAS)
+    target_compile_definitions(hypergraph PRIVATE EIGEN_USE_BLAS)
     target_link_libraries(hypergraph PRIVATE ${BLAS_LIBRARIES})
 endif()
 
-install(TARGETS hypergraph DESTINATION bin)
+install(TARGETS hypergraph DESTINATION .)
