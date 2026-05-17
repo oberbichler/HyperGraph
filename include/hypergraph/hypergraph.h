@@ -110,8 +110,8 @@ public: // constructor
 
     Variable(HyperGraph<T>* graph, const T value, const index id)
         : m_graph(graph)
-        , m_value(value)
         , m_id(id)
+        , m_value(value)
     {
     }
 
