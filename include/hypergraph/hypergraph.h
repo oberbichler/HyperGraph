@@ -79,6 +79,36 @@ HYPERGRAPH_INLINE Variable<T> sqrt(const Variable<T>& x);
 template <typename T>
 HYPERGRAPH_INLINE Variable<T> tan(const Variable<T>& x);
 
+template <typename T>
+HYPERGRAPH_INLINE Variable<T> exp(const Variable<T>& x);
+
+template <typename T>
+HYPERGRAPH_INLINE Variable<T> log(const Variable<T>& x);
+
+template <typename T>
+HYPERGRAPH_INLINE Variable<T> square(const Variable<T>& x);
+
+template <typename T>
+HYPERGRAPH_INLINE Variable<T> sinh(const Variable<T>& x);
+
+template <typename T>
+HYPERGRAPH_INLINE Variable<T> cosh(const Variable<T>& x);
+
+template <typename T>
+HYPERGRAPH_INLINE Variable<T> tanh(const Variable<T>& x);
+
+template <typename T>
+HYPERGRAPH_INLINE Variable<T> asinh(const Variable<T>& x);
+
+template <typename T>
+HYPERGRAPH_INLINE Variable<T> acosh(const Variable<T>& x);
+
+template <typename T>
+HYPERGRAPH_INLINE Variable<T> atanh(const Variable<T>& x);
+
+template <typename T>
+HYPERGRAPH_INLINE Variable<T> atan2(const Variable<T>& y, const Variable<T>& x);
+
 template <typename T, typename U>
 HYPERGRAPH_INLINE index vertex_id(const U& item)
 {
@@ -160,6 +190,15 @@ public: // python
             .def("sin", [](const Type& x) { return hypergraph::sin(x); })
             .def("sqrt", [](const Type& x) { return hypergraph::sqrt(x); })
             .def("tan", [](const Type& x) { return hypergraph::tan(x); })
+            .def("exp", [](const Type& x) { return hypergraph::exp(x); })
+            .def("log", [](const Type& x) { return hypergraph::log(x); })
+            .def("square", [](const Type& x) { return hypergraph::square(x); })
+            .def("sinh", [](const Type& x) { return hypergraph::sinh(x); })
+            .def("cosh", [](const Type& x) { return hypergraph::cosh(x); })
+            .def("tanh", [](const Type& x) { return hypergraph::tanh(x); })
+            .def("arcsinh", [](const Type& x) { return hypergraph::asinh(x); })
+            .def("arccosh", [](const Type& x) { return hypergraph::acosh(x); })
+            .def("arctanh", [](const Type& x) { return hypergraph::atanh(x); })
             // operators
             .def(py::self == py::self)
             .def(py::self != py::self)
@@ -891,15 +930,22 @@ HYPERGRAPH_INLINE Variable<T>& operator/=(Variable<T>& lhs, const double rhs)
 
 using std::abs;
 using std::acos;
+using std::acosh;
 using std::asin;
+using std::asinh;
 using std::atan;
+using std::atan2;
+using std::atanh;
 using std::cos;
+using std::cosh;
 using std::exp;
 using std::log;
 using std::pow;
 using std::sin;
+using std::sinh;
 using std::sqrt;
 using std::tan;
+using std::tanh;
 
 template <typename T>
 HYPERGRAPH_INLINE Variable<T> abs(const Variable<T>& x)
@@ -1063,6 +1109,110 @@ HYPERGRAPH_INLINE Variable<T> atan(const Variable<T>& x)
     const Variable<T> result = graph->new_tmp_variable(atan_x);
     const auto tmp = 1 / (1 + x.value() * x.value());
     graph->add_edge(result, x, tmp, -2 * x.value() * tmp * tmp);
+    return result;
+}
+
+template <typename T>
+HYPERGRAPH_INLINE Variable<T> sinh(const Variable<T>& x)
+{
+    using std::cosh;
+    using std::sinh;
+
+    HyperGraph<T>* graph = x.graph();
+
+    const auto sinh_x = sinh(x.value());
+    const Variable<T> result = graph->new_tmp_variable(sinh_x);
+    graph->add_edge(result, x, cosh(x.value()), sinh_x);
+    return result;
+}
+
+template <typename T>
+HYPERGRAPH_INLINE Variable<T> cosh(const Variable<T>& x)
+{
+    using std::cosh;
+    using std::sinh;
+
+    HyperGraph<T>* graph = x.graph();
+
+    const auto cosh_x = cosh(x.value());
+    const Variable<T> result = graph->new_tmp_variable(cosh_x);
+    graph->add_edge(result, x, sinh(x.value()), cosh_x);
+    return result;
+}
+
+template <typename T>
+HYPERGRAPH_INLINE Variable<T> tanh(const Variable<T>& x)
+{
+    using std::tanh;
+
+    HyperGraph<T>* graph = x.graph();
+
+    const auto tanh_x = tanh(x.value());
+    const auto sech_sq = 1.0 - tanh_x * tanh_x;
+    const Variable<T> result = graph->new_tmp_variable(tanh_x);
+    graph->add_edge(result, x, sech_sq, -2.0 * tanh_x * sech_sq);
+    return result;
+}
+
+template <typename T>
+HYPERGRAPH_INLINE Variable<T> asinh(const Variable<T>& x)
+{
+    using std::asinh;
+    using std::sqrt;
+
+    HyperGraph<T>* graph = x.graph();
+
+    const auto asinh_x = asinh(x.value());
+    const auto tmp = 1.0 / (1.0 + x.value() * x.value());
+    const auto tmp_sqrt = sqrt(tmp);
+    const Variable<T> result = graph->new_tmp_variable(asinh_x);
+    graph->add_edge(result, x, tmp_sqrt, -x.value() * tmp_sqrt * tmp);
+    return result;
+}
+
+template <typename T>
+HYPERGRAPH_INLINE Variable<T> acosh(const Variable<T>& x)
+{
+    using std::acosh;
+    using std::sqrt;
+
+    HyperGraph<T>* graph = x.graph();
+
+    const auto acosh_x = acosh(x.value());
+    const auto tmp = 1.0 / (x.value() * x.value() - 1.0);
+    const auto tmp_sqrt = sqrt(tmp);
+    const Variable<T> result = graph->new_tmp_variable(acosh_x);
+    graph->add_edge(result, x, tmp_sqrt, -x.value() * tmp_sqrt * tmp);
+    return result;
+}
+
+template <typename T>
+HYPERGRAPH_INLINE Variable<T> atanh(const Variable<T>& x)
+{
+    using std::atanh;
+
+    HyperGraph<T>* graph = x.graph();
+
+    const auto atanh_x = atanh(x.value());
+    const auto one_minus_x2 = 1.0 - x.value() * x.value();
+    const auto tmp = 1.0 / one_minus_x2;
+    const Variable<T> result = graph->new_tmp_variable(atanh_x);
+    graph->add_edge(result, x, tmp, 2.0 * x.value() * tmp * tmp);
+    return result;
+}
+
+template <typename T>
+HYPERGRAPH_INLINE Variable<T> atan2(const Variable<T>& y, const Variable<T>& x)
+{
+    using std::atan2;
+
+    // Use composition atan(y/x) for correct automatic second derivatives.
+    // The derivatives of atan2(y,x) and atan(y/x) are identical for x != 0.
+    Variable<T> result = hypergraph::atan(y / x);
+
+    // Correct the value to match atan2 semantics (handles all quadrants)
+    result.set_value(atan2(y.value(), x.value()));
+
     return result;
 }
 
