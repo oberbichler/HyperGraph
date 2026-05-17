@@ -663,5 +663,116 @@ class TestHyperGraph(unittest.TestCase):
                                       [0, 0, 0, 0,  0, 7/(9*np.sqrt(6))]])
 
 
+    # edge cases
+
+    def test_abs_zero(self):
+        graph = hg.HyperGraph()
+
+        a = graph.new_variable(0)
+
+        result = abs(a)
+        assert_equal(result.value, 0)
+
+        graph.compute(result)
+        g = graph.g()
+        assert_array_equal(g, [0])
+
+    def test_division_by_zero_raises(self):
+        graph = hg.HyperGraph()
+
+        a, b = graph.new_variables([5, 0])
+
+        with self.assertRaises(ValueError):
+            a / b
+
+    def test_sqrt_zero_raises(self):
+        graph = hg.HyperGraph()
+
+        a = graph.new_variable(0)
+
+        with self.assertRaises(ValueError):
+            np.sqrt(a)
+
+    def test_sqrt_negative_raises(self):
+        graph = hg.HyperGraph()
+
+        a = graph.new_variable(-1)
+
+        with self.assertRaises(ValueError):
+            np.sqrt(a)
+
+    def test_log_zero_raises(self):
+        graph = hg.HyperGraph()
+
+        a = graph.new_variable(0)
+
+        with self.assertRaises(ValueError):
+            a.log()
+
+    def test_log_negative_raises(self):
+        graph = hg.HyperGraph()
+
+        a = graph.new_variable(-1)
+
+        with self.assertRaises(ValueError):
+            a.log()
+
+    def test_asin_boundary_raises(self):
+        graph = hg.HyperGraph()
+
+        a = graph.new_variable(1)
+
+        with self.assertRaises(ValueError):
+            np.arcsin(a)
+
+    def test_acos_boundary_raises(self):
+        graph = hg.HyperGraph()
+
+        a = graph.new_variable(-1)
+
+        with self.assertRaises(ValueError):
+            np.arccos(a)
+
+    def test_acosh_boundary_raises(self):
+        graph = hg.HyperGraph()
+
+        a = graph.new_variable(1)
+
+        with self.assertRaises(ValueError):
+            a.arccosh()
+
+    def test_atanh_boundary_raises(self):
+        graph = hg.HyperGraph()
+
+        a = graph.new_variable(1)
+
+        with self.assertRaises(ValueError):
+            a.arctanh()
+
+    def test_pow_zero_low_exponent_raises(self):
+        graph = hg.HyperGraph()
+
+        a = graph.new_variable(0)
+
+        with self.assertRaises(ValueError):
+            a ** 0.5
+
+    def test_atan2_origin_raises(self):
+        graph = hg.HyperGraph()
+
+        y, x = graph.new_variables([0, 0])
+
+        with self.assertRaises(ValueError):
+            hg.atan2(y, x)
+
+    def test_atan2_x_zero_raises(self):
+        graph = hg.HyperGraph()
+
+        y, x = graph.new_variables([1, 0])
+
+        with self.assertRaises(ValueError):
+            hg.atan2(y, x)
+
+
 if __name__ == '__main__':
     unittest.main()

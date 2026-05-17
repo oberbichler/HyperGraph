@@ -14,8 +14,10 @@
 #include <tsl/robin_map.h>
 
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <memory>
+#include <stdexcept>
 
 namespace hypergraph {
 
@@ -881,6 +883,12 @@ HYPERGRAPH_INLINE Variable<T>& operator*=(Variable<T>& lhs, const double rhs)
 template <typename T>
 HYPERGRAPH_INLINE Variable<T> inv(const Variable<T>& x)
 {
+#ifdef HYPERGRAPH_EXCEPTIONS
+    if (x.value() == 0.0) {
+        throw std::domain_error("inv: division by zero");
+    }
+#endif
+
     HyperGraph<T>* graph = x.graph();
 
     const auto inv_x = 1.0 / x.value();
@@ -948,8 +956,14 @@ HYPERGRAPH_INLINE Variable<T> abs(const Variable<T>& x)
 {
     if (x.value() > 0) {
         return x;
-    } else {
+    } else if (x.value() < 0) {
         return -x;
+    } else {
+        // Subgradient convention: abs(0) = 0, d|x|/dx = 0 at x = 0
+        HyperGraph<T>* graph = x.graph();
+        const Variable<T> result = graph->new_tmp_variable(0.0);
+        graph->add_edge(result, x, 0.0, 0.0);
+        return result;
     }
 }
 
@@ -969,6 +983,15 @@ HYPERGRAPH_INLINE Variable<T> sqrt(const Variable<T>& x)
 {
     using std::sqrt;
 
+#ifdef HYPERGRAPH_EXCEPTIONS
+    if (x.value() < 0.0) {
+        throw std::domain_error("sqrt: negative argument");
+    }
+    if (x.value() == 0.0) {
+        throw std::domain_error("sqrt: derivative undefined at x = 0");
+    }
+#endif
+
     HyperGraph<T>* graph = x.graph();
 
     const auto sqrt_x = sqrt(x.value());
@@ -982,6 +1005,12 @@ template <typename T>
 HYPERGRAPH_INLINE Variable<T> pow(const Variable<T>& x, const double a)
 {
     using std::pow;
+
+#ifdef HYPERGRAPH_EXCEPTIONS
+    if (x.value() == 0.0 && a < 2.0) {
+        throw std::domain_error("pow: derivative undefined at x = 0 for exponent < 2");
+    }
+#endif
 
     HyperGraph<T>* graph = x.graph();
 
@@ -1008,6 +1037,12 @@ template <typename T>
 HYPERGRAPH_INLINE Variable<T> log(const Variable<T>& x)
 {
     using std::log;
+
+#ifdef HYPERGRAPH_EXCEPTIONS
+    if (x.value() <= 0.0) {
+        throw std::domain_error("log: argument must be positive");
+    }
+#endif
 
     HyperGraph<T>* graph = x.graph();
 
@@ -1052,6 +1087,13 @@ HYPERGRAPH_INLINE Variable<T> tan(const Variable<T>& x)
     using std::cos;
     using std::tan;
 
+#ifdef HYPERGRAPH_EXCEPTIONS
+    const auto cos_check = cos(x.value());
+    if (cos_check == 0.0) {
+        throw std::domain_error("tan: derivative undefined at x = pi/2 + n*pi");
+    }
+#endif
+
     HyperGraph<T>* graph = x.graph();
 
     const auto tan_x = tan(x.value());
@@ -1068,6 +1110,12 @@ HYPERGRAPH_INLINE Variable<T> acos(const Variable<T>& x)
     using std::acos;
     using std::sqrt;
 
+#ifdef HYPERGRAPH_EXCEPTIONS
+    if (x.value() <= -1.0 || x.value() >= 1.0) {
+        throw std::domain_error("acos: derivative undefined at |x| >= 1");
+    }
+#endif
+
     HyperGraph<T>* graph = x.graph();
 
     const auto acos_x = acos(x.value());
@@ -1083,6 +1131,12 @@ HYPERGRAPH_INLINE Variable<T> asin(const Variable<T>& x)
 {
     using std::asin;
     using std::sqrt;
+
+#ifdef HYPERGRAPH_EXCEPTIONS
+    if (x.value() <= -1.0 || x.value() >= 1.0) {
+        throw std::domain_error("asin: derivative undefined at |x| >= 1");
+    }
+#endif
 
     HyperGraph<T>* graph = x.graph();
 
@@ -1172,6 +1226,12 @@ HYPERGRAPH_INLINE Variable<T> acosh(const Variable<T>& x)
     using std::acosh;
     using std::sqrt;
 
+#ifdef HYPERGRAPH_EXCEPTIONS
+    if (x.value() <= 1.0) {
+        throw std::domain_error("acosh: argument must be > 1");
+    }
+#endif
+
     HyperGraph<T>* graph = x.graph();
 
     const auto acosh_x = acosh(x.value());
@@ -1187,6 +1247,12 @@ HYPERGRAPH_INLINE Variable<T> atanh(const Variable<T>& x)
 {
     using std::atanh;
 
+#ifdef HYPERGRAPH_EXCEPTIONS
+    if (x.value() <= -1.0 || x.value() >= 1.0) {
+        throw std::domain_error("atanh: argument must be in (-1, 1)");
+    }
+#endif
+
     HyperGraph<T>* graph = x.graph();
 
     const auto atanh_x = atanh(x.value());
@@ -1201,6 +1267,15 @@ template <typename T>
 HYPERGRAPH_INLINE Variable<T> atan2(const Variable<T>& y, const Variable<T>& x)
 {
     using std::atan2;
+
+#ifdef HYPERGRAPH_EXCEPTIONS
+    if (x.value() == 0.0 && y.value() == 0.0) {
+        throw std::domain_error("atan2: undefined at (0, 0)");
+    }
+    if (x.value() == 0.0) {
+        throw std::domain_error("atan2: derivative undefined at x = 0");
+    }
+#endif
 
     // Use composition atan(y/x) for correct automatic second derivatives.
     // The derivatives of atan2(y,x) and atan(y/x) are identical for x != 0.
