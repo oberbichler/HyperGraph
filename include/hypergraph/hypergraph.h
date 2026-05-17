@@ -99,14 +99,12 @@ private: // types
     using Type = Variable<T>;
 
 private: // variables
-    HyperGraph<T>* m_graph;
-    index m_id;
-    T m_value;
+    HyperGraph<T>* m_graph = nullptr;
+    index m_id = 0;
+    T m_value = T{};
 
 public: // constructor
-    Variable()
-    {
-    }
+    Variable() = default;
 
     Variable(HyperGraph<T>* graph, const T value, const index id)
         : m_graph(graph)
@@ -205,13 +203,11 @@ private: // types
     using Type = Edge<T>;
 
 private: // variables
-    index m_to;
-    T m_weight;
+    index m_to = 0;
+    T m_weight = T{};
 
 public: // constructors
-    Edge()
-    {
-    }
+    Edge() = default;
 
     Edge(const index to, const T w = 0.0)
         : m_to(to)
