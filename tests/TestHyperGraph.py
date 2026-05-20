@@ -1353,6 +1353,137 @@ class TestHyperGraph(unittest.TestCase):
         graph.new_variables([2, 3, 4])
         assert_equal(graph.num_variables, 4)
 
+    # to_dot — computation graph visualization
+
+    def test_to_dot_returns_string(self):
+        """to_dot() returns a non-empty string"""
+        graph = hg.HyperGraph()
+
+        a, b = graph.new_variables([3, 4])
+        result = a * b
+
+        dot = graph.to_dot()
+        self.assertIsInstance(dot, str)
+        self.assertGreater(len(dot), 0)
+
+    def test_to_dot_contains_digraph(self):
+        """to_dot() output starts with a valid DOT digraph"""
+        graph = hg.HyperGraph()
+
+        a, b = graph.new_variables([3, 4])
+        result = a + b
+
+        dot = graph.to_dot()
+        self.assertIn('digraph ComputationGraph', dot)
+        self.assertTrue(dot.strip().endswith('}'))
+
+    def test_to_dot_contains_variable_labels(self):
+        """to_dot() output contains variable labels x0, x1"""
+        graph = hg.HyperGraph()
+
+        a, b = graph.new_variables([3, 4])
+        result = a * b
+
+        dot = graph.to_dot()
+        self.assertIn('x0', dot)
+        self.assertIn('x1', dot)
+
+    def test_to_dot_contains_operation_labels(self):
+        """to_dot() output contains operation labels like *, +, sin"""
+        graph = hg.HyperGraph()
+
+        a, b = graph.new_variables([3, 4])
+        result = a * b + np.sin(a)
+
+        dot = graph.to_dot()
+        self.assertIn('*', dot)
+        self.assertIn('+', dot)
+        self.assertIn('sin', dot)
+
+    def test_to_dot_contains_edges(self):
+        """to_dot() output contains edges (-> arrows)"""
+        graph = hg.HyperGraph()
+
+        a, b = graph.new_variables([3, 4])
+        result = a + b
+
+        dot = graph.to_dot()
+        self.assertIn('->', dot)
+
+    def test_to_dot_empty_graph(self):
+        """to_dot() works on a graph with no variables"""
+        graph = hg.HyperGraph()
+
+        dot = graph.to_dot()
+        self.assertIn('digraph ComputationGraph', dot)
+
+    def test_to_dot_single_variable(self):
+        """to_dot() works with only variables and no operations"""
+        graph = hg.HyperGraph()
+
+        a = graph.new_variable(5)
+
+        dot = graph.to_dot()
+        self.assertIn('x0', dot)
+
+    def test_to_dot_complex_expression(self):
+        """to_dot() handles complex expression with multiple ops"""
+        graph = hg.HyperGraph()
+
+        x, y = graph.new_variables([2, 3])
+        result = x.exp() + y.log() * x
+
+        dot = graph.to_dot()
+        self.assertIn('exp', dot)
+        self.assertIn('log', dot)
+        self.assertIn('*', dot)
+        self.assertIn('+', dot)
+
+    def test_to_dot_write_file(self):
+        """to_dot(path) writes a file and returns the DOT string"""
+        import tempfile
+        import os
+
+        graph = hg.HyperGraph()
+
+        a, b = graph.new_variables([3, 4])
+        result = a * b
+
+        dot_string = graph.to_dot()
+
+        # Write DOT source to a temp file (no graphviz required)
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.dot', delete=False) as f:
+            f.write(dot_string)
+            tmp_path = f.name
+
+        try:
+            self.assertTrue(os.path.exists(tmp_path))
+            with open(tmp_path) as f:
+                content = f.read()
+            self.assertIn('digraph ComputationGraph', content)
+        finally:
+            os.unlink(tmp_path)
+
+    def test_to_dot_unary_ops(self):
+        """to_dot() labels unary operations correctly"""
+        graph = hg.HyperGraph()
+
+        x = graph.new_variable(0.5)
+        result = x.sqrt()
+
+        dot = graph.to_dot()
+        self.assertIn('sqrt', dot)
+
+    def test_to_dot_negation(self):
+        """to_dot() labels negation correctly"""
+        graph = hg.HyperGraph()
+
+        x = graph.new_variable(5)
+        result = -x
+
+        dot = graph.to_dot()
+        self.assertIn('neg', dot)
+
 
 if __name__ == '__main__':
     unittest.main()
