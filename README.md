@@ -2,7 +2,7 @@
 
 **Reverse-mode second-order automatic differentiation for Python.**
 
-HyperGraph computes exact **gradients** and **Hessians** of scalar expressions using a computational-graph approach based on reverse-mode automatic differentiation. The core is implemented in C++ with [Eigen](https://eigen.tuxfamily.org/) and exposed to Python via [pybind11](https://github.com/pybind/pybind11), making it both fast and easy to use.
+HyperGraph computes exact **gradients** and **Hessians** of scalar expressions using a computational-graph approach based on reverse-mode automatic differentiation. The core is implemented in C++ with [Eigen](https://eigen.tuxfamily.org/) and exposed to Python via [nanobind](https://github.com/wjakob/nanobind), making it both fast and easy to use.
 
 [![CI](https://github.com/oberbichler/HyperGraph/actions/workflows/ci.yml/badge.svg)](https://github.com/oberbichler/HyperGraph/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/hypergraph)](https://pypi.org/project/hypergraph)
@@ -17,9 +17,9 @@ HyperGraph computes exact **gradients** and **Hessians** of scalar expressions u
 ## Features
 
 - **Second-order derivatives** — computes both the gradient vector and the full Hessian matrix in a single pass
-- **High performance** — C++17 core with Eigen, optional BLAS acceleration
+- **High performance** — C++17 core with Eigen 5, optional BLAS acceleration
 - **NumPy integration** — HyperGraph variables work seamlessly with `np.sin`, `np.cos`, `np.sqrt`, `np.dot`, `np.cross`, `np.linalg.norm`, and more
-- **Comprehensive math library** — arithmetic, trigonometric, hyperbolic, inverse-hyperbolic, exponential, logarithmic, and power functions
+- **Comprehensive math library** — arithmetic, trigonometric, hyperbolic, inverse-hyperbolic, exponential, logarithmic, power, error, and activation functions
 - **Cross-platform** — tested on Linux, macOS, and Windows with Python 3.12 and 3.13
 
 ## Installation
@@ -112,14 +112,38 @@ graph.h(out=h_out)
 | **Comparison** | `==`, `!=`, `<`, `>`, `<=`, `>=` |
 | **Trigonometric** | `sin`, `cos`, `tan`, `arcsin`, `arccos`, `arctan`, `atan2` |
 | **Hyperbolic** | `sinh`, `cosh`, `tanh`, `arcsinh`, `arccosh`, `arctanh` |
-| **Exponential** | `exp`, `log` |
-| **Power / Root** | `pow` (`**`), `square`, `sqrt`, `abs` |
+| **Exponential / Logarithmic** | `exp`, `log`, `log2`, `log10` |
+| **Power / Root** | `pow` (`**`), `pow(x, y)`, `square`, `sqrt`, `abs`, `hypot` |
+| **Error functions** | `erf`, `erfc` |
+| **Activation functions** | `sigmoid`, `softplus` |
+| **Min / Max** | `min`, `max` |
 
-Trigonometric and root functions can be called via NumPy (`np.sin(x)`, `np.sqrt(x)`, …) or as methods on a variable (`x.sin()`, `x.sqrt()`, …). The `atan2` function is available as `hg.atan2(y, x)`.
+Most functions can be called via NumPy (`np.sin(x)`, `np.sqrt(x)`, …) or as methods on a variable (`x.sin()`, `x.sqrt()`, …).
+
+Two-argument functions are available as module-level functions:
+
+```python
+hg.atan2(y, x)      # arctangent of y/x
+hg.pow(x, y)        # x raised to the power y (both variables)
+hg.hypot(x, y)      # sqrt(x² + y²)
+hg.min(x, y)        # minimum of x and y
+hg.max(x, y)        # maximum of x and y
+```
+
+Additional module-level functions:
+
+```python
+hg.log2(x)          # base-2 logarithm
+hg.log10(x)         # base-10 logarithm
+hg.erf(x)           # error function
+hg.erfc(x)          # complementary error function
+hg.sigmoid(x)       # sigmoid: 1 / (1 + exp(-x))
+hg.softplus(x)      # softplus: log(1 + exp(x))
+```
 
 ## Building from Source
 
-HyperGraph uses [scikit-build-core](https://github.com/scikit-build/scikit-build-core) and requires a C++17 compiler, CMake ≥ 3.24, and pybind11. [Eigen 3.4](https://eigen.tuxfamily.org/) is fetched automatically during the build.
+HyperGraph uses [scikit-build-core](https://github.com/scikit-build/scikit-build-core) and requires a C++17 compiler, CMake ≥ 3.24, and [nanobind](https://github.com/wjakob/nanobind). [Eigen 5.0](https://eigen.tuxfamily.org/) is fetched automatically during the build.
 
 ```bash
 # Clone the repository
