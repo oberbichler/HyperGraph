@@ -39,6 +39,7 @@ target_include_directories(hypergraph PRIVATE
 target_link_libraries(hypergraph PRIVATE Eigen3::Eigen)
 
 target_compile_definitions(hypergraph PRIVATE
+    _USE_MATH_DEFINES
     EIGEN_DEFAULT_TO_ROW_MAJOR
     HYPERGRAPH_VERSION="${SKBUILD_PROJECT_VERSION}"
     HYPERGRAPH_EXCEPTIONS
