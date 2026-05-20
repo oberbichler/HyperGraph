@@ -9,7 +9,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include(FetchContent)
 
-find_package(pybind11 CONFIG REQUIRED)
+find_package(Python 3.12 COMPONENTS Interpreter Development.Module REQUIRED)
+find_package(nanobind CONFIG REQUIRED)
 
 FetchContent_Declare(
     eigen
@@ -27,7 +28,7 @@ find_package(BLAS QUIET)
 
 # --- Target ---
 
-pybind11_add_module(hypergraph src/Module.cpp)
+nanobind_add_module(hypergraph src/Module.cpp)
 
 target_include_directories(hypergraph PRIVATE
     "${CMAKE_SOURCE_DIR}/include"
