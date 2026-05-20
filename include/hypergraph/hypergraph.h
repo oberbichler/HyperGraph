@@ -9,12 +9,14 @@
 
 #pragma once
 
+#define _USE_MATH_DEFINES
+#include <cmath>
+
 #include <Eigen/Core>
 
 #include <tsl/robin_map.h>
 
 #include <algorithm>
-#include <cmath>
 #include <cstddef>
 #include <memory>
 #include <stdexcept>
@@ -200,16 +202,16 @@ public: // python
     template <typename TModule>
     static void register_python(TModule& m)
     {
-        using namespace pybind11::literals;
-        namespace py = pybind11;
+        using namespace nanobind::literals;
+        namespace nb = nanobind;
 
         const std::string name = "Variable";
 
-        py::class_<Type>(m, name.c_str())
+        nb::class_<Type>(m, name.c_str())
             // properties
-            .def_property_readonly("value", &Type::value)
+            .def_prop_ro("value", &Type::value)
             // read-only properties
-            .def_property_readonly("_id", &Type::id)
+            .def_prop_ro("_id", &Type::id)
             // methods
             .def("__abs__", [](const Type& x) { return hypergraph::abs(x); })
             .def("__pow__", [](const Type& x, const double a) { return hypergraph::pow(x, a); })
@@ -237,41 +239,41 @@ public: // python
             .def("softplus", [](const Type& x) { return hypergraph::softplus(x); })
             .def("__pow__", [](const Type& x, const Type& y) { return hypergraph::pow(x, y); })
             // operators
-            .def(py::self == py::self)
-            .def(py::self != py::self)
-            .def(py::self < py::self)
-            .def(py::self > py::self)
-            .def(py::self <= py::self)
-            .def(py::self >= py::self)
-            .def(py::self == double())
-            .def(py::self != double())
-            .def(py::self < double())
-            .def(py::self > double())
-            .def(py::self <= double())
-            .def(py::self >= double())
-            .def(double() == py::self)
-            .def(double() != py::self)
-            .def(double() < py::self)
-            .def(double() > py::self)
-            .def(double() <= py::self)
-            .def(double() >= py::self)
-            .def(-py::self)
-            .def(py::self + py::self)
-            .def(py::self + double())
-            .def(double() + py::self)
-            .def(py::self += py::self)
-            .def(py::self - py::self)
-            .def(py::self - double())
-            .def(double() - py::self)
-            .def(py::self -= py::self)
-            .def(py::self * py::self)
-            .def(py::self * double())
-            .def(double() * py::self)
-            .def(py::self *= py::self)
-            .def(py::self / py::self)
-            .def(py::self / double())
-            .def(double() / py::self)
-            .def(py::self /= py::self);
+            .def(nb::self == nb::self)
+            .def(nb::self != nb::self)
+            .def(nb::self < nb::self)
+            .def(nb::self > nb::self)
+            .def(nb::self <= nb::self)
+            .def(nb::self >= nb::self)
+            .def(nb::self == double())
+            .def(nb::self != double())
+            .def(nb::self < double())
+            .def(nb::self > double())
+            .def(nb::self <= double())
+            .def(nb::self >= double())
+            .def(double() == nb::self)
+            .def(double() != nb::self)
+            .def(double() < nb::self)
+            .def(double() > nb::self)
+            .def(double() <= nb::self)
+            .def(double() >= nb::self)
+            .def(-nb::self)
+            .def(nb::self + nb::self)
+            .def(nb::self + double())
+            .def(double() + nb::self)
+            .def(nb::self += nb::self)
+            .def(nb::self - nb::self)
+            .def(nb::self - double())
+            .def(double() - nb::self)
+            .def(nb::self -= nb::self)
+            .def(nb::self * nb::self)
+            .def(nb::self * double())
+            .def(double() * nb::self)
+            .def(nb::self *= nb::self)
+            .def(nb::self / nb::self)
+            .def(nb::self / double())
+            .def(double() / nb::self)
+            .def(nb::self /= nb::self);
     }
 };
 
@@ -656,22 +658,22 @@ public: // python
     template <typename TModule>
     static void register_python(TModule& m)
     {
-        using namespace pybind11::literals;
-        namespace py = pybind11;
+        using namespace nanobind::literals;
+        namespace nb = nanobind;
 
         const std::string name = "HyperGraph";
 
-        py::class_<Type>(m, name.c_str())
+        nb::class_<Type>(m, name.c_str())
             // constructors
-            .def(py::init<>())
+            .def(nb::init<>())
             // methods
             .def("new_variable", &Type::new_variable, "value"_a)
             .def("new_variables", &Type::new_variables, "values"_a)
             .def("compute", &Type::compute, "expression"_a)
-            .def("g", py::overload_cast<>(&Type::g, py::const_))
-            .def("g", py::overload_cast<Eigen::Ref<Eigen::VectorXd>>(&Type::g, py::const_), "out"_a)
-            .def("h", py::overload_cast<const bool>(&Type::h, py::const_), "full"_a = false)
-            .def("h", py::overload_cast<Eigen::Ref<Eigen::MatrixXd>, const bool>(&Type::h, py::const_), "out"_a, "full"_a = false);
+            .def("g", nb::overload_cast<>(&Type::g, nb::const_))
+            .def("g", nb::overload_cast<Eigen::Ref<Eigen::VectorXd>>(&Type::g, nb::const_), "out"_a)
+            .def("h", nb::overload_cast<const bool>(&Type::h, nb::const_), "full"_a = false)
+            .def("h", nb::overload_cast<Eigen::Ref<Eigen::MatrixXd>, const bool>(&Type::h, nb::const_), "out"_a, "full"_a = false);
     }
 };
 
