@@ -15,13 +15,15 @@ find_package(nanobind CONFIG REQUIRED)
 FetchContent_Declare(
     eigen
     GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
-    GIT_TAG 3.4.0
+    GIT_TAG 5.0.1
     GIT_SHALLOW TRUE
+    SYSTEM
+    EXCLUDE_FROM_ALL
 )
-FetchContent_Populate(eigen)
-
-add_library(Eigen3::Eigen INTERFACE IMPORTED)
-target_include_directories(Eigen3::Eigen INTERFACE "${eigen_SOURCE_DIR}")
+set(EIGEN_BUILD_DOC OFF CACHE BOOL "" FORCE)
+set(EIGEN_BUILD_TESTING OFF CACHE BOOL "" FORCE)
+set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(eigen)
 
 find_package(BLAS QUIET)
 
@@ -37,6 +39,7 @@ target_include_directories(hypergraph PRIVATE
 target_link_libraries(hypergraph PRIVATE Eigen3::Eigen)
 
 target_compile_definitions(hypergraph PRIVATE
+    _USE_MATH_DEFINES
     EIGEN_DEFAULT_TO_ROW_MAJOR
     HYPERGRAPH_VERSION="${SKBUILD_PROJECT_VERSION}"
     HYPERGRAPH_EXCEPTIONS
