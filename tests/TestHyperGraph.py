@@ -2,6 +2,7 @@ import unittest
 import math
 import hypergraph as hg
 import numpy as np
+import scipy.sparse
 from numpy.testing import assert_equal, assert_array_equal, assert_almost_equal, assert_array_almost_equal
 
 
@@ -1152,6 +1153,205 @@ class TestHyperGraph(unittest.TestCase):
 
         result = hg.hypot(x, y)
         assert_almost_equal(result.value, 13)
+
+
+    # sparse Hessian
+
+    def test_h_sparse_triplets_basic(self):
+        """h_sparse_triplets returns correct (rows, cols, values) for upper triangle"""
+        graph = hg.HyperGraph()
+
+        a, b = graph.new_variables([5, 6])
+
+        result = a * b
+        graph.compute(result)
+
+        rows, cols, values = graph.h_sparse_triplets()
+        # a*b has H = [[0, 1], [0, 0]] (upper triangle only)
+        # Only one non-zero entry: (0, 1) = 1
+        assert_equal(len(rows), 1)
+        assert_equal(len(cols), 1)
+        assert_equal(len(values), 1)
+        assert_equal(rows[0], 0)
+        assert_equal(cols[0], 1)
+        assert_almost_equal(values[0], 1.0)
+
+    def test_h_sparse_triplets_full(self):
+        """h_sparse_triplets with full=True returns both triangles"""
+        graph = hg.HyperGraph()
+
+        a, b = graph.new_variables([5, 6])
+
+        result = a * b
+        graph.compute(result)
+
+        rows, cols, values = graph.h_sparse_triplets(full=True)
+        # full=True: (0,1)=1 and (1,0)=1
+        assert_equal(len(rows), 2)
+        # Convert to a set of (row, col, val) for order-independent check
+        entries = set(zip(rows, cols, values))
+        self.assertIn((0, 1, 1.0), entries)
+        self.assertIn((1, 0, 1.0), entries)
+
+    def test_h_sparse_triplets_diagonal(self):
+        """h_sparse_triplets includes diagonal entries"""
+        graph = hg.HyperGraph()
+
+        a, b = graph.new_variables([3, 5])
+
+        result = a.square()
+        graph.compute(result)
+
+        rows, cols, values = graph.h_sparse_triplets()
+        # d²(x²)/dx² = 2, only diagonal entry (0,0)
+        assert_equal(len(rows), 1)
+        assert_equal(rows[0], 0)
+        assert_equal(cols[0], 0)
+        assert_almost_equal(values[0], 2.0)
+
+    def test_h_sparse_triplets_empty(self):
+        """h_sparse_triplets returns empty lists when Hessian is zero"""
+        graph = hg.HyperGraph()
+
+        a, b = graph.new_variables([5, 6])
+
+        result = a + b
+        graph.compute(result)
+
+        rows, cols, values = graph.h_sparse_triplets()
+        assert_equal(len(rows), 0)
+        assert_equal(len(cols), 0)
+        assert_equal(len(values), 0)
+
+    def test_h_sparse_matches_dense(self):
+        """h_sparse().toarray() matches h(full=True) for a complex expression"""
+        graph = hg.HyperGraph()
+
+        ax, ay, az, bx, by, bz = graph.new_variables([1, 2, 3, 4, 5, 6])
+
+        a = np.array([ax, ay, az])
+        b = np.array([bx, by, bz])
+
+        result = np.linalg.norm(np.cross(a, b))
+
+        graph.compute(result)
+
+        h_dense = graph.h(full=True)
+        h_sparse = graph.h_sparse(full=True)
+
+        assert_array_almost_equal(h_sparse.toarray(), h_dense)
+
+    def test_h_sparse_upper_triangle_matches(self):
+        """h_sparse() default (upper triangle) matches h() upper triangle"""
+        graph = hg.HyperGraph()
+
+        ax, ay, az, bx, by, bz = graph.new_variables([1, 2, 3, 4, 5, 6])
+
+        a = np.array([ax, ay, az])
+        b = np.array([bx, by, bz])
+
+        result = np.linalg.norm(np.cross(a, b))
+
+        graph.compute(result)
+
+        h_dense_upper = graph.h(full=False)
+        h_sparse_upper = graph.h_sparse(full=False)
+
+        # The sparse version should have the upper triangle entries
+        # When converted to dense, lower triangle should be zero
+        sparse_dense = h_sparse_upper.toarray()
+        assert_array_almost_equal(sparse_dense, h_dense_upper)
+
+    def test_h_sparse_coo_format(self):
+        """h_sparse(format='coo') returns COO matrix"""
+        graph = hg.HyperGraph()
+
+        a, b = graph.new_variables([5, 6])
+        result = a * b
+        graph.compute(result)
+
+        h_sparse = graph.h_sparse(format='coo')
+        self.assertIsInstance(h_sparse, scipy.sparse.coo_matrix)
+
+    def test_h_sparse_csc_format(self):
+        """h_sparse(format='csc') returns CSC matrix (default)"""
+        graph = hg.HyperGraph()
+
+        a, b = graph.new_variables([5, 6])
+        result = a * b
+        graph.compute(result)
+
+        h_sparse = graph.h_sparse(format='csc')
+        self.assertIsInstance(h_sparse, scipy.sparse.csc_matrix)
+
+    def test_h_sparse_csr_format(self):
+        """h_sparse(format='csr') returns CSR matrix"""
+        graph = hg.HyperGraph()
+
+        a, b = graph.new_variables([5, 6])
+        result = a * b
+        graph.compute(result)
+
+        h_sparse = graph.h_sparse(format='csr')
+        self.assertIsInstance(h_sparse, scipy.sparse.csr_matrix)
+
+    def test_h_sparse_default_is_csc(self):
+        """h_sparse() default format is CSC"""
+        graph = hg.HyperGraph()
+
+        a, b = graph.new_variables([5, 6])
+        result = a * b
+        graph.compute(result)
+
+        h_sparse = graph.h_sparse()
+        self.assertIsInstance(h_sparse, scipy.sparse.csc_matrix)
+
+    def test_h_sparse_invalid_format_raises(self):
+        """h_sparse with invalid format raises ValueError"""
+        graph = hg.HyperGraph()
+
+        a, b = graph.new_variables([5, 6])
+        result = a * b
+        graph.compute(result)
+
+        with self.assertRaises(Exception):
+            graph.h_sparse(format='invalid')
+
+    def test_h_sparse_shape(self):
+        """h_sparse returns matrix with correct shape"""
+        graph = hg.HyperGraph()
+
+        a, b, c = graph.new_variables([1, 2, 3])
+        result = a * b + b * c
+        graph.compute(result)
+
+        h_sparse = graph.h_sparse()
+        assert_equal(h_sparse.shape, (3, 3))
+
+    def test_h_sparse_multiplication(self):
+        """h_sparse values match dense h for multiplication"""
+        graph = hg.HyperGraph()
+
+        a, b = graph.new_variables([5, 6])
+        result = a * b
+        graph.compute(result)
+
+        h_dense = graph.h(full=True)
+        h_sparse = graph.h_sparse(full=True)
+
+        assert_array_almost_equal(h_sparse.toarray(), h_dense)
+
+    def test_num_variables(self):
+        """num_variables property returns correct count"""
+        graph = hg.HyperGraph()
+
+        assert_equal(graph.num_variables, 0)
+
+        graph.new_variable(1)
+        assert_equal(graph.num_variables, 1)
+
+        graph.new_variables([2, 3, 4])
+        assert_equal(graph.num_variables, 4)
 
 
 if __name__ == '__main__':

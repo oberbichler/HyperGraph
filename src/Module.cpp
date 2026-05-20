@@ -2,6 +2,7 @@
 #include <nanobind/eigen/dense.h>
 #include <nanobind/operators.h>
 #include <nanobind/stl/string.h>
+#include <nanobind/stl/tuple.h>
 #include <nanobind/stl/vector.h>
 
 #include <hypergraph/hypergraph.h>
