@@ -1,4 +1,5 @@
 import unittest
+import math
 import hypergraph as hg
 import numpy as np
 from numpy.testing import assert_equal, assert_array_equal, assert_almost_equal, assert_array_almost_equal
@@ -772,6 +773,385 @@ class TestHyperGraph(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             hg.atan2(y, x)
+
+    # log2, log10
+
+    def test_log2(self):
+        graph = hg.HyperGraph()
+
+        a, b = graph.new_variables([4, 3])
+
+        result = a.log2()
+        assert_almost_equal(result.value, np.log2(4))
+
+        graph.compute(result)
+        g = graph.g()
+        h = graph.h()
+        x = 4.0
+        ln2 = np.log(2)
+        assert_array_almost_equal(g, [1/(x * ln2), 0])
+        assert_array_almost_equal(h, [[-1/(x**2 * ln2), 0], [0, 0]])
+
+    def test_log2_module(self):
+        graph = hg.HyperGraph()
+
+        a = graph.new_variable(8)
+
+        result = hg.log2(a)
+        assert_almost_equal(result.value, 3.0)
+
+    def test_log2_nonpositive_raises(self):
+        graph = hg.HyperGraph()
+
+        a = graph.new_variable(0)
+        with self.assertRaises(ValueError):
+            a.log2()
+
+        b = graph.new_variable(-1)
+        with self.assertRaises(ValueError):
+            b.log2()
+
+    def test_log10(self):
+        graph = hg.HyperGraph()
+
+        a, b = graph.new_variables([100, 3])
+
+        result = a.log10()
+        assert_almost_equal(result.value, 2.0)
+
+        graph.compute(result)
+        g = graph.g()
+        h = graph.h()
+        x = 100.0
+        ln10 = np.log(10)
+        assert_array_almost_equal(g, [1/(x * ln10), 0])
+        assert_array_almost_equal(h, [[-1/(x**2 * ln10), 0], [0, 0]])
+
+    def test_log10_module(self):
+        graph = hg.HyperGraph()
+
+        a = graph.new_variable(1000)
+
+        result = hg.log10(a)
+        assert_almost_equal(result.value, 3.0)
+
+    def test_log10_nonpositive_raises(self):
+        graph = hg.HyperGraph()
+
+        a = graph.new_variable(0)
+        with self.assertRaises(ValueError):
+            a.log10()
+
+        b = graph.new_variable(-1)
+        with self.assertRaises(ValueError):
+            hg.log10(b)
+
+    # erf, erfc
+
+    def test_erf(self):
+        graph = hg.HyperGraph()
+
+        a, b = graph.new_variables([1.5, 3])
+
+        result = a.erf()
+        assert_almost_equal(result.value, math.erf(1.5))
+
+        graph.compute(result)
+        g = graph.g()
+        h = graph.h()
+        x = 1.5
+        two_over_sqrt_pi = 2.0 / np.sqrt(np.pi)
+        exp_neg_x2 = np.exp(-x**2)
+        g1 = two_over_sqrt_pi * exp_neg_x2
+        h1 = -2.0 * x * g1
+        assert_array_almost_equal(g, [g1, 0])
+        assert_array_almost_equal(h, [[h1, 0], [0, 0]])
+
+    def test_erf_module(self):
+        graph = hg.HyperGraph()
+
+        a = graph.new_variable(0)
+
+        result = hg.erf(a)
+        assert_almost_equal(result.value, 0.0)
+
+    def test_erfc(self):
+        graph = hg.HyperGraph()
+
+        a, b = graph.new_variables([1.5, 3])
+
+        result = a.erfc()
+        assert_almost_equal(result.value, math.erfc(1.5))
+
+        graph.compute(result)
+        g = graph.g()
+        h = graph.h()
+        x = 1.5
+        two_over_sqrt_pi = 2.0 / np.sqrt(np.pi)
+        exp_neg_x2 = np.exp(-x**2)
+        g1 = -two_over_sqrt_pi * exp_neg_x2
+        h1 = 2.0 * x * two_over_sqrt_pi * exp_neg_x2
+        assert_array_almost_equal(g, [g1, 0])
+        assert_array_almost_equal(h, [[h1, 0], [0, 0]])
+
+    def test_erfc_module(self):
+        graph = hg.HyperGraph()
+
+        a = graph.new_variable(0)
+
+        result = hg.erfc(a)
+        assert_almost_equal(result.value, 1.0)
+
+    def test_erf_plus_erfc_is_one(self):
+        """erf(x) + erfc(x) == 1 for all x"""
+        graph = hg.HyperGraph()
+
+        a = graph.new_variable(2.0)
+
+        result_erf = a.erf()
+        result_erfc = a.erfc()
+        assert_almost_equal(result_erf.value + result_erfc.value, 1.0)
+
+    # sigmoid
+
+    def test_sigmoid(self):
+        graph = hg.HyperGraph()
+
+        a, b = graph.new_variables([2, 3])
+
+        result = a.sigmoid()
+        x = 2.0
+        sig = 1.0 / (1.0 + np.exp(-x))
+        assert_almost_equal(result.value, sig)
+
+        graph.compute(result)
+        g = graph.g()
+        h = graph.h()
+        g1 = sig * (1 - sig)
+        h1 = g1 * (1 - 2 * sig)
+        assert_array_almost_equal(g, [g1, 0])
+        assert_array_almost_equal(h, [[h1, 0], [0, 0]])
+
+    def test_sigmoid_zero(self):
+        graph = hg.HyperGraph()
+
+        a = graph.new_variable(0)
+
+        result = a.sigmoid()
+        assert_almost_equal(result.value, 0.5)
+
+        graph.compute(result)
+        g = graph.g()
+        # sigmoid'(0) = 0.25
+        assert_array_almost_equal(g, [0.25])
+
+    def test_sigmoid_module(self):
+        graph = hg.HyperGraph()
+
+        a = graph.new_variable(0)
+
+        result = hg.sigmoid(a)
+        assert_almost_equal(result.value, 0.5)
+
+    # softplus
+
+    def test_softplus(self):
+        graph = hg.HyperGraph()
+
+        a, b = graph.new_variables([2, 3])
+
+        result = a.softplus()
+        x = 2.0
+        sp = np.log(1 + np.exp(x))
+        assert_almost_equal(result.value, sp)
+
+        graph.compute(result)
+        g = graph.g()
+        h = graph.h()
+        sig = 1.0 / (1.0 + np.exp(-x))
+        g1 = sig
+        h1 = sig * (1 - sig)
+        assert_array_almost_equal(g, [g1, 0])
+        assert_array_almost_equal(h, [[h1, 0], [0, 0]])
+
+    def test_softplus_module(self):
+        graph = hg.HyperGraph()
+
+        a = graph.new_variable(0)
+
+        result = hg.softplus(a)
+        assert_almost_equal(result.value, np.log(2))
+
+    # min, max
+
+    def test_min_x_less(self):
+        graph = hg.HyperGraph()
+
+        a, b = graph.new_variables([3, 7])
+
+        result = hg.min(a, b)
+        assert_almost_equal(result.value, 3)
+
+        graph.compute(result)
+        g = graph.g()
+        h = graph.h()
+        assert_array_almost_equal(g, [1, 0])
+        assert_array_almost_equal(h, [[0, 0], [0, 0]])
+
+    def test_min_y_less(self):
+        graph = hg.HyperGraph()
+
+        a, b = graph.new_variables([7, 3])
+
+        result = hg.min(a, b)
+        assert_almost_equal(result.value, 3)
+
+        graph.compute(result)
+        g = graph.g()
+        h = graph.h()
+        assert_array_almost_equal(g, [0, 1])
+        assert_array_almost_equal(h, [[0, 0], [0, 0]])
+
+    def test_min_equal(self):
+        graph = hg.HyperGraph()
+
+        a, b = graph.new_variables([5, 5])
+
+        result = hg.min(a, b)
+        assert_almost_equal(result.value, 5)
+
+        graph.compute(result)
+        g = graph.g()
+        # Subgradient convention: x gets the derivative when equal
+        assert_array_almost_equal(g, [1, 0])
+
+    def test_max_x_greater(self):
+        graph = hg.HyperGraph()
+
+        a, b = graph.new_variables([7, 3])
+
+        result = hg.max(a, b)
+        assert_almost_equal(result.value, 7)
+
+        graph.compute(result)
+        g = graph.g()
+        h = graph.h()
+        assert_array_almost_equal(g, [1, 0])
+        assert_array_almost_equal(h, [[0, 0], [0, 0]])
+
+    def test_max_y_greater(self):
+        graph = hg.HyperGraph()
+
+        a, b = graph.new_variables([3, 7])
+
+        result = hg.max(a, b)
+        assert_almost_equal(result.value, 7)
+
+        graph.compute(result)
+        g = graph.g()
+        h = graph.h()
+        assert_array_almost_equal(g, [0, 1])
+        assert_array_almost_equal(h, [[0, 0], [0, 0]])
+
+    def test_max_equal(self):
+        graph = hg.HyperGraph()
+
+        a, b = graph.new_variables([5, 5])
+
+        result = hg.max(a, b)
+        assert_almost_equal(result.value, 5)
+
+        graph.compute(result)
+        g = graph.g()
+        # Subgradient convention: x gets the derivative when equal
+        assert_array_almost_equal(g, [1, 0])
+
+    # pow(Variable, Variable)
+
+    def test_pow_variable_variable(self):
+        graph = hg.HyperGraph()
+
+        x, y = graph.new_variables([2, 3])
+
+        result = hg.pow(x, y)
+        assert_almost_equal(result.value, 8)
+
+        graph.compute(result)
+        g = graph.g()
+        h = graph.h(full=True)
+        xv, yv = 2.0, 3.0
+        # ∂f/∂x = y·x^(y-1) = 3·4 = 12
+        # ∂f/∂y = x^y·ln(x) = 8·ln(2)
+        assert_array_almost_equal(g, [yv * xv**(yv - 1), xv**yv * np.log(xv)])
+        # ∂²f/∂x² = y(y-1)·x^(y-2) = 3·2·1 = 6
+        # ∂²f/∂y² = x^y·(ln(x))² = 8·(ln2)²
+        # ∂²f/∂x∂y = x^(y-1)·(1 + y·ln(x)) = 4·(1 + 3·ln2)
+        h_xx = yv * (yv - 1) * xv**(yv - 2)
+        h_yy = xv**yv * np.log(xv)**2
+        h_xy = xv**(yv - 1) * (1 + yv * np.log(xv))
+        assert_array_almost_equal(h, [[h_xx, h_xy], [h_xy, h_yy]])
+
+    def test_pow_variable_variable_via_operator(self):
+        """Test x ** y where y is a Variable, not a double"""
+        graph = hg.HyperGraph()
+
+        x, y = graph.new_variables([3, 2])
+
+        result = x ** y
+        assert_almost_equal(result.value, 9)
+
+    def test_pow_variable_variable_nonpositive_raises(self):
+        graph = hg.HyperGraph()
+
+        x, y = graph.new_variables([0, 2])
+        with self.assertRaises(ValueError):
+            hg.pow(x, y)
+
+        x2, y2 = graph.new_variables([-1, 2])
+        with self.assertRaises(ValueError):
+            hg.pow(x2, y2)
+
+    # hypot
+
+    def test_hypot(self):
+        graph = hg.HyperGraph()
+
+        x, y = graph.new_variables([3, 4])
+
+        result = hg.hypot(x, y)
+        assert_almost_equal(result.value, 5)
+
+        graph.compute(result)
+        g = graph.g()
+        h = graph.h(full=True)
+        xv, yv = 3.0, 4.0
+        hv = 5.0
+        # ∂f/∂x = x/h = 3/5, ∂f/∂y = y/h = 4/5
+        assert_array_almost_equal(g, [xv/hv, yv/hv])
+        # ∂²f/∂x² = y²/h³ = 16/125
+        # ∂²f/∂y² = x²/h³ = 9/125
+        # ∂²f/∂x∂y = -xy/h³ = -12/125
+        h_xx = yv**2 / hv**3
+        h_yy = xv**2 / hv**3
+        h_xy = -xv * yv / hv**3
+        assert_array_almost_equal(h, [[h_xx, h_xy], [h_xy, h_yy]])
+
+    def test_hypot_origin_raises(self):
+        graph = hg.HyperGraph()
+
+        x, y = graph.new_variables([0, 0])
+
+        with self.assertRaises(ValueError):
+            hg.hypot(x, y)
+
+    def test_hypot_pythagorean(self):
+        """Verify value for a well-known Pythagorean triple"""
+        graph = hg.HyperGraph()
+
+        x, y = graph.new_variables([5, 12])
+
+        result = hg.hypot(x, y)
+        assert_almost_equal(result.value, 13)
 
 
 if __name__ == '__main__':
