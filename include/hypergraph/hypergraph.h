@@ -111,6 +111,36 @@ HYPERGRAPH_INLINE Variable<T> atanh(const Variable<T>& x);
 template <typename T>
 HYPERGRAPH_INLINE Variable<T> atan2(const Variable<T>& y, const Variable<T>& x);
 
+template <typename T>
+HYPERGRAPH_INLINE Variable<T> log2(const Variable<T>& x);
+
+template <typename T>
+HYPERGRAPH_INLINE Variable<T> log10(const Variable<T>& x);
+
+template <typename T>
+HYPERGRAPH_INLINE Variable<T> erf(const Variable<T>& x);
+
+template <typename T>
+HYPERGRAPH_INLINE Variable<T> erfc(const Variable<T>& x);
+
+template <typename T>
+HYPERGRAPH_INLINE Variable<T> sigmoid(const Variable<T>& x);
+
+template <typename T>
+HYPERGRAPH_INLINE Variable<T> softplus(const Variable<T>& x);
+
+template <typename T>
+HYPERGRAPH_INLINE Variable<T> min(const Variable<T>& x, const Variable<T>& y);
+
+template <typename T>
+HYPERGRAPH_INLINE Variable<T> max(const Variable<T>& x, const Variable<T>& y);
+
+template <typename T>
+HYPERGRAPH_INLINE Variable<T> pow(const Variable<T>& x, const Variable<T>& y);
+
+template <typename T>
+HYPERGRAPH_INLINE Variable<T> hypot(const Variable<T>& x, const Variable<T>& y);
+
 template <typename T, typename U>
 HYPERGRAPH_INLINE index vertex_id(const U& item)
 {
@@ -199,6 +229,13 @@ public: // python
             .def("arcsinh", [](const Type& x) { return hypergraph::asinh(x); })
             .def("arccosh", [](const Type& x) { return hypergraph::acosh(x); })
             .def("arctanh", [](const Type& x) { return hypergraph::atanh(x); })
+            .def("log2", [](const Type& x) { return hypergraph::log2(x); })
+            .def("log10", [](const Type& x) { return hypergraph::log10(x); })
+            .def("erf", [](const Type& x) { return hypergraph::erf(x); })
+            .def("erfc", [](const Type& x) { return hypergraph::erfc(x); })
+            .def("sigmoid", [](const Type& x) { return hypergraph::sigmoid(x); })
+            .def("softplus", [](const Type& x) { return hypergraph::softplus(x); })
+            .def("__pow__", [](const Type& x, const Type& y) { return hypergraph::pow(x, y); })
             // operators
             .def(py::self == py::self)
             .def(py::self != py::self)
@@ -942,8 +979,13 @@ using std::atan2;
 using std::atanh;
 using std::cos;
 using std::cosh;
+using std::erf;
+using std::erfc;
 using std::exp;
+using std::hypot;
 using std::log;
+using std::log2;
+using std::log10;
 using std::pow;
 using std::sin;
 using std::sinh;
@@ -1283,6 +1325,211 @@ HYPERGRAPH_INLINE Variable<T> atan2(const Variable<T>& y, const Variable<T>& x)
 
     // Correct the value to match atan2 semantics (handles all quadrants)
     result.set_value(atan2(y.value(), x.value()));
+
+    return result;
+}
+
+template <typename T>
+HYPERGRAPH_INLINE Variable<T> log2(const Variable<T>& x)
+{
+    using std::log;
+    using std::log2;
+
+#ifdef HYPERGRAPH_EXCEPTIONS
+    if (x.value() <= 0.0) {
+        throw std::domain_error("log2: argument must be positive");
+    }
+#endif
+
+    HyperGraph<T>* graph = x.graph();
+
+    const auto log2_x = log2(x.value());
+    const auto inv = 1.0 / x.value();
+    const auto ln2 = log(2.0);
+    const auto inv_ln2 = 1.0 / ln2;
+    const Variable<T> result = graph->new_tmp_variable(log2_x);
+    // d(log2(x))/dx = 1/(x·ln2), d²(log2(x))/dx² = -1/(x²·ln2)
+    graph->add_edge(result, x, inv * inv_ln2, -inv * inv * inv_ln2);
+    return result;
+}
+
+template <typename T>
+HYPERGRAPH_INLINE Variable<T> log10(const Variable<T>& x)
+{
+    using std::log;
+    using std::log10;
+
+#ifdef HYPERGRAPH_EXCEPTIONS
+    if (x.value() <= 0.0) {
+        throw std::domain_error("log10: argument must be positive");
+    }
+#endif
+
+    HyperGraph<T>* graph = x.graph();
+
+    const auto log10_x = log10(x.value());
+    const auto inv = 1.0 / x.value();
+    const auto ln10 = log(10.0);
+    const auto inv_ln10 = 1.0 / ln10;
+    const Variable<T> result = graph->new_tmp_variable(log10_x);
+    // d(log10(x))/dx = 1/(x·ln10), d²(log10(x))/dx² = -1/(x²·ln10)
+    graph->add_edge(result, x, inv * inv_ln10, -inv * inv * inv_ln10);
+    return result;
+}
+
+template <typename T>
+HYPERGRAPH_INLINE Variable<T> erf(const Variable<T>& x)
+{
+    using std::erf;
+    using std::exp;
+
+    HyperGraph<T>* graph = x.graph();
+
+    const auto erf_x = erf(x.value());
+    // d(erf(x))/dx = 2/sqrt(π) · exp(-x²)
+    // d²(erf(x))/dx² = -4x/sqrt(π) · exp(-x²)
+    const auto two_over_sqrt_pi = 2.0 / std::sqrt(M_PI);
+    const auto exp_neg_x2 = exp(-x.value() * x.value());
+    const auto first_deriv = two_over_sqrt_pi * exp_neg_x2;
+    const auto second_deriv = -2.0 * x.value() * first_deriv;
+    const Variable<T> result = graph->new_tmp_variable(erf_x);
+    graph->add_edge(result, x, first_deriv, second_deriv);
+    return result;
+}
+
+template <typename T>
+HYPERGRAPH_INLINE Variable<T> erfc(const Variable<T>& x)
+{
+    using std::erfc;
+    using std::exp;
+
+    HyperGraph<T>* graph = x.graph();
+
+    const auto erfc_x = erfc(x.value());
+    // erfc(x) = 1 - erf(x), so derivatives are negated
+    // d(erfc(x))/dx = -2/sqrt(π) · exp(-x²)
+    // d²(erfc(x))/dx² = 4x/sqrt(π) · exp(-x²)
+    const auto two_over_sqrt_pi = 2.0 / std::sqrt(M_PI);
+    const auto exp_neg_x2 = exp(-x.value() * x.value());
+    const auto first_deriv = -two_over_sqrt_pi * exp_neg_x2;
+    const auto second_deriv = 2.0 * x.value() * two_over_sqrt_pi * exp_neg_x2;
+    const Variable<T> result = graph->new_tmp_variable(erfc_x);
+    graph->add_edge(result, x, first_deriv, second_deriv);
+    return result;
+}
+
+template <typename T>
+HYPERGRAPH_INLINE Variable<T> sigmoid(const Variable<T>& x)
+{
+    using std::exp;
+
+    HyperGraph<T>* graph = x.graph();
+
+    // sigmoid(x) = 1/(1+exp(-x))
+    const auto exp_neg_x = exp(-x.value());
+    const auto sig = 1.0 / (1.0 + exp_neg_x);
+    // d(sigmoid)/dx = sigmoid · (1 - sigmoid)
+    const auto first_deriv = sig * (1.0 - sig);
+    // d²(sigmoid)/dx² = sigmoid · (1 - sigmoid) · (1 - 2·sigmoid)
+    const auto second_deriv = first_deriv * (1.0 - 2.0 * sig);
+    const Variable<T> result = graph->new_tmp_variable(sig);
+    graph->add_edge(result, x, first_deriv, second_deriv);
+    return result;
+}
+
+template <typename T>
+HYPERGRAPH_INLINE Variable<T> softplus(const Variable<T>& x)
+{
+    using std::exp;
+    using std::log;
+
+    HyperGraph<T>* graph = x.graph();
+
+    // softplus(x) = log(1 + exp(x))
+    // For numerical stability: if x >> 0, softplus(x) ≈ x
+    const auto exp_x = exp(x.value());
+    const auto softplus_x = log(1.0 + exp_x);
+    // d(softplus)/dx = sigmoid(x) = exp(x)/(1+exp(x)) = 1/(1+exp(-x))
+    const auto sig = exp_x / (1.0 + exp_x);
+    // d²(softplus)/dx² = sigmoid(x)·(1-sigmoid(x))
+    const auto second_deriv = sig * (1.0 - sig);
+    const Variable<T> result = graph->new_tmp_variable(softplus_x);
+    graph->add_edge(result, x, sig, second_deriv);
+    return result;
+}
+
+template <typename T>
+HYPERGRAPH_INLINE Variable<T> min(const Variable<T>& x, const Variable<T>& y)
+{
+    // Subgradient convention: at x == y, derivative w.r.t. x is 1, w.r.t. y is 0
+    if (x.value() <= y.value()) {
+        HyperGraph<T>* graph = x.graph();
+        const Variable<T> result = graph->new_tmp_variable(x.value());
+        graph->add_edge(result, x, y, 1.0, 0.0, 0.0);
+        return result;
+    } else {
+        HyperGraph<T>* graph = y.graph();
+        const Variable<T> result = graph->new_tmp_variable(y.value());
+        graph->add_edge(result, x, y, 0.0, 1.0, 0.0);
+        return result;
+    }
+}
+
+template <typename T>
+HYPERGRAPH_INLINE Variable<T> max(const Variable<T>& x, const Variable<T>& y)
+{
+    // Subgradient convention: at x == y, derivative w.r.t. x is 1, w.r.t. y is 0
+    if (x.value() >= y.value()) {
+        HyperGraph<T>* graph = x.graph();
+        const Variable<T> result = graph->new_tmp_variable(x.value());
+        graph->add_edge(result, x, y, 1.0, 0.0, 0.0);
+        return result;
+    } else {
+        HyperGraph<T>* graph = y.graph();
+        const Variable<T> result = graph->new_tmp_variable(y.value());
+        graph->add_edge(result, x, y, 0.0, 1.0, 0.0);
+        return result;
+    }
+}
+
+template <typename T>
+HYPERGRAPH_INLINE Variable<T> pow(const Variable<T>& x, const Variable<T>& y)
+{
+    using std::pow;
+
+#ifdef HYPERGRAPH_EXCEPTIONS
+    if (x.value() <= 0.0) {
+        throw std::domain_error("pow(Variable, Variable): base must be positive");
+    }
+#endif
+
+    // x^y = exp(y·ln(x)) — compose from existing primitives for correct
+    // second-order derivatives (self and cross terms)
+    Variable<T> result = hypergraph::exp(y * hypergraph::log(x));
+
+    // Correct the value to use std::pow for better numerical accuracy
+    result.set_value(pow(x.value(), y.value()));
+
+    return result;
+}
+
+template <typename T>
+HYPERGRAPH_INLINE Variable<T> hypot(const Variable<T>& x, const Variable<T>& y)
+{
+    using std::hypot;
+
+#ifdef HYPERGRAPH_EXCEPTIONS
+    if (x.value() == 0.0 && y.value() == 0.0) {
+        throw std::domain_error("hypot: derivative undefined at (0, 0)");
+    }
+#endif
+
+    // sqrt(x² + y²) — compose from existing primitives for correct
+    // second-order derivatives (self and cross terms)
+    Variable<T> result = hypergraph::sqrt(hypergraph::square(x) + hypergraph::square(y));
+
+    // Correct the value to use std::hypot for better numerical accuracy
+    result.set_value(hypot(x.value(), y.value()));
 
     return result;
 }
