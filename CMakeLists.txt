@@ -14,13 +14,14 @@ find_package(pybind11 CONFIG REQUIRED)
 FetchContent_Declare(
     eigen
     GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
-    GIT_TAG 3.4.0
+    GIT_TAG 5.0.1
     GIT_SHALLOW TRUE
+    SYSTEM
 )
-FetchContent_Populate(eigen)
-
-add_library(Eigen3::Eigen INTERFACE IMPORTED)
-target_include_directories(Eigen3::Eigen INTERFACE "${eigen_SOURCE_DIR}")
+set(EIGEN_BUILD_DOC OFF CACHE BOOL "" FORCE)
+set(EIGEN_BUILD_TESTING OFF CACHE BOOL "" FORCE)
+set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(eigen)
 
 find_package(BLAS QUIET)
 
