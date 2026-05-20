@@ -20,6 +20,7 @@
 #include <cstddef>
 #include <memory>
 #include <stdexcept>
+#include <tuple>
 
 namespace hypergraph {
 
@@ -654,6 +655,84 @@ public: // methods
         }
     }
 
+    index num_variables() const
+    {
+        return length(m_variables);
+    }
+
+    std::tuple<std::vector<index>, std::vector<index>, std::vector<T>>
+    h_sparse_triplets(const bool full = false) const
+    {
+        const index n = length(m_variables);
+
+        std::vector<index> rows;
+        std::vector<index> cols;
+        std::vector<T> values;
+
+        // Build a map from vertex_id → variable_index for efficient lookup
+        tsl::robin_map<index, index> vid_to_var;
+        vid_to_var.reserve(n);
+        for (index i = 0; i < n; i++) {
+            vid_to_var[m_variables[i].id()] = i;
+        }
+
+        // Diagonal entries from m_self_second_order_edges
+        for (index i = 0; i < n; i++) {
+            const T val = m_self_second_order_edges[m_variables[i].id()];
+            if (val != T{}) {
+                rows.push_back(i);
+                cols.push_back(i);
+                values.push_back(double(val));
+            }
+        }
+
+        // Off-diagonal entries from m_second_order_edges
+        // The structure stores entries with key = min(vid_a, vid_b) inside
+        // m_second_order_edges[max(vid_a, vid_b)].
+        for (index outer_vid = 0; outer_vid < length(m_second_order_edges); outer_vid++) {
+            const auto& btree = m_second_order_edges[outer_vid];
+            if (btree.empty()) {
+                continue;
+            }
+
+            // Check if the outer vertex_id corresponds to a variable
+            auto outer_it = vid_to_var.find(outer_vid);
+            if (outer_it == vid_to_var.end()) {
+                continue;
+            }
+            const index outer_var_idx = outer_it->second;
+
+            for (const auto& [inner_vid, val] : btree) {
+                if (val == T{}) {
+                    continue;
+                }
+
+                auto inner_it = vid_to_var.find(inner_vid);
+                if (inner_it == vid_to_var.end()) {
+                    continue;
+                }
+                const index inner_var_idx = inner_it->second;
+
+                // inner_vid < outer_vid by construction (minmax in second_order_edge)
+                // So inner_var_idx may or may not be < outer_var_idx
+                const auto [row, col] = hypergraph::minmax(inner_var_idx, outer_var_idx);
+
+                // Upper triangle: row <= col
+                rows.push_back(row);
+                cols.push_back(col);
+                values.push_back(double(val));
+
+                if (full && row != col) {
+                    rows.push_back(col);
+                    cols.push_back(row);
+                    values.push_back(double(val));
+                }
+            }
+        }
+
+        return {std::move(rows), std::move(cols), std::move(values)};
+    }
+
 public: // python
     template <typename TModule>
     static void register_python(TModule& m)
@@ -666,6 +745,8 @@ public: // python
         nb::class_<Type>(m, name.c_str())
             // constructors
             .def(nb::init<>())
+            // properties
+            .def_prop_ro("num_variables", &Type::num_variables)
             // methods
             .def("new_variable", &Type::new_variable, "value"_a)
             .def("new_variables", &Type::new_variables, "values"_a)
@@ -673,7 +754,37 @@ public: // python
             .def("g", nb::overload_cast<>(&Type::g, nb::const_))
             .def("g", nb::overload_cast<Eigen::Ref<Eigen::VectorXd>>(&Type::g, nb::const_), "out"_a)
             .def("h", nb::overload_cast<const bool>(&Type::h, nb::const_), "full"_a = false)
-            .def("h", nb::overload_cast<Eigen::Ref<Eigen::MatrixXd>, const bool>(&Type::h, nb::const_), "out"_a, "full"_a = false);
+            .def("h", nb::overload_cast<Eigen::Ref<Eigen::MatrixXd>, const bool>(&Type::h, nb::const_), "out"_a, "full"_a = false)
+            .def("h_sparse_triplets", &Type::h_sparse_triplets, "full"_a = false)
+            .def("h_sparse", [](const Type& self, const std::string& format, const bool full) -> nb::object {
+                auto [rows, cols, values] = self.h_sparse_triplets(full);
+                const auto n = self.num_variables();
+
+                nb::module_ scipy_sparse = nb::module_::import_("scipy.sparse");
+
+                // Build numpy arrays from the triplet vectors
+                nb::module_ np = nb::module_::import_("numpy");
+                nb::object np_array = np.attr("array");
+
+                nb::object py_rows = np_array(nb::cast(rows), "dtype"_a = np.attr("int64"));
+                nb::object py_cols = np_array(nb::cast(cols), "dtype"_a = np.attr("int64"));
+                nb::object py_vals = np_array(nb::cast(values), "dtype"_a = np.attr("float64"));
+
+                nb::tuple data_ij = nb::make_tuple(py_vals, nb::make_tuple(py_rows, py_cols));
+                nb::tuple shape = nb::make_tuple(n, n);
+
+                nb::object coo = scipy_sparse.attr("coo_matrix")(data_ij, "shape"_a = shape);
+
+                if (format == "coo") {
+                    return coo;
+                } else if (format == "csc") {
+                    return coo.attr("tocsc")();
+                } else if (format == "csr") {
+                    return coo.attr("tocsr")();
+                } else {
+                    throw std::invalid_argument("h_sparse: format must be 'coo', 'csc', or 'csr'");
+                }
+            }, "format"_a = "csc", "full"_a = false);
     }
 };
 
