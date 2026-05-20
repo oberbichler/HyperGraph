@@ -9,12 +9,14 @@
 
 #pragma once
 
+#define _USE_MATH_DEFINES
+#include <cmath>
+
 #include <Eigen/Core>
 
 #include <tsl/robin_map.h>
 
 #include <algorithm>
-#include <cmath>
 #include <cstddef>
 #include <memory>
 #include <stdexcept>
