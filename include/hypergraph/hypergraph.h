@@ -19,7 +19,9 @@
 #include <algorithm>
 #include <cstddef>
 #include <memory>
+#include <sstream>
 #include <stdexcept>
+#include <string>
 #include <tuple>
 
 namespace hypergraph {
@@ -397,13 +399,15 @@ private: // variables
     std::vector<Vertex<T>> m_vertices;
     std::vector<tsl::robin_map<index, T>> m_second_order_edges;
     std::vector<T> m_self_second_order_edges;
+    std::vector<std::string> m_vertex_labels;
 
 public: // constructor
 public: // methods
-    Variable<T> new_tmp_variable(const T value)
+    Variable<T> new_tmp_variable(const T value, const std::string& label = "")
     {
         const index id = length(m_vertices);
         m_vertices.emplace_back(id);
+        m_vertex_labels.push_back(label);
         return Variable(this, value, id);
     }
 
@@ -411,6 +415,7 @@ public: // methods
     {
         const index id = length(m_vertices);
         m_vertices.emplace_back(id);
+        m_vertex_labels.push_back("x" + std::to_string(length(m_variables)));
         return m_variables.emplace_back(this, value, id);
     }
 
@@ -733,6 +738,70 @@ public: // methods
         return {std::move(rows), std::move(cols), std::move(values)};
     }
 
+    std::string to_dot() const
+    {
+        std::ostringstream ss;
+        ss << "digraph ComputationGraph {\n";
+        ss << "    rankdir=BT;\n";
+        ss << "    node [shape=record, style=filled];\n\n";
+
+        const index n_vertices = length(m_vertices);
+
+        // Build a set of variable vertex IDs for styling
+        tsl::robin_map<index, index> var_ids;
+        for (index i = 0; i < length(m_variables); i++) {
+            var_ids[m_variables[i].id()] = i;
+        }
+
+        // Emit nodes
+        for (index vid = 0; vid < n_vertices; vid++) {
+            const auto& v = m_vertices[vid];
+            const std::string& label = m_vertex_labels[vid];
+            const bool is_var = var_ids.find(vid) != var_ids.end();
+
+            ss << "    v" << vid << " [label=\"";
+            if (!label.empty()) {
+                ss << label;
+            } else {
+                ss << "v" << vid;
+            }
+            ss << "\"";
+
+            if (is_var) {
+                ss << ", fillcolor=\"#a8d8ea\", shape=ellipse";
+            } else {
+                ss << ", fillcolor=\"#f8f8f8\"";
+            }
+
+            ss << "];\n";
+        }
+
+        ss << "\n";
+
+        // Emit edges (from parent to child = data flow direction)
+        for (index vid = 0; vid < n_vertices; vid++) {
+            const auto& v = m_vertices[vid];
+            const auto& e1 = v.edge1();
+            const auto& e2 = v.edge2();
+
+            if (e1.to() != vid) {
+                ss << "    v" << e1.to() << " -> v" << vid
+                   << " [label=\"" << e1.weight() << "\"];\n";
+            }
+            if (e2.to() != vid && e2.to() != e1.to()) {
+                ss << "    v" << e2.to() << " -> v" << vid
+                   << " [label=\"" << e2.weight() << "\"];\n";
+            } else if (e2.to() != vid && e2.to() == e1.to()) {
+                // Same parent appears twice (e.g. x*x); show both edges
+                ss << "    v" << e2.to() << " -> v" << vid
+                   << " [label=\"" << e2.weight() << "\"];\n";
+            }
+        }
+
+        ss << "}\n";
+        return ss.str();
+    }
+
 public: // python
     template <typename TModule>
     static void register_python(TModule& m)
@@ -784,7 +853,36 @@ public: // python
                 } else {
                     throw std::invalid_argument("h_sparse: format must be 'coo', 'csc', or 'csr'");
                 }
-            }, "format"_a = "csc", "full"_a = false);
+            }, "format"_a = "csc", "full"_a = false)
+            .def("to_dot", [](const Type& self, const std::string& path) -> nb::object {
+                const std::string dot = self.to_dot();
+
+                if (path.empty()) {
+                    return nb::cast(dot);
+                }
+
+                // If a path is given, try to render via graphviz
+                nb::module_ subprocess = nb::module_::import_("subprocess");
+                nb::module_ builtins = nb::module_::import_("builtins");
+
+                // Determine format from extension
+                std::string fmt = "svg";
+                auto dot_pos = path.rfind('.');
+                if (dot_pos != std::string::npos) {
+                    fmt = path.substr(dot_pos + 1);
+                }
+
+                // Write the DOT string to the output file via `dot` command
+                nb::object result = subprocess.attr("run")(
+                    nb::make_tuple("dot", "-T" + fmt, "-o", path),
+                    "input"_a = dot,
+                    "capture_output"_a = true,
+                    "text"_a = true,
+                    "check"_a = true
+                );
+
+                return nb::cast(dot);
+            }, "path"_a = "");
     }
 };
 
@@ -901,7 +999,7 @@ HYPERGRAPH_INLINE Variable<T> operator-(const Variable<T>& x)
 {
     HyperGraph<T>* graph = x.graph();
 
-    const Variable<T> result = graph->new_tmp_variable(-x.value());
+    const Variable<T> result = graph->new_tmp_variable(-x.value(), "neg");
     graph->add_edge(result, x, -1.0, 0.0);
     return result;
 }
@@ -911,7 +1009,7 @@ HYPERGRAPH_INLINE Variable<T> operator+(const Variable<T>& lhs, const Variable<T
 {
     HyperGraph<T>* graph = lhs.graph();
 
-    const Variable<T> result = graph->new_tmp_variable(lhs.value() + rhs.value());
+    const Variable<T> result = graph->new_tmp_variable(lhs.value() + rhs.value(), "+");
     graph->add_edge(result, lhs, rhs, 1.0, 1.0, 0.0);
     return result;
 }
@@ -921,7 +1019,7 @@ HYPERGRAPH_INLINE Variable<T> operator+(const Variable<T>& lhs, const double rhs
 {
     HyperGraph<T>* graph = lhs.graph();
 
-    const Variable<T> result = graph->new_tmp_variable(lhs.value() + rhs);
+    const Variable<T> result = graph->new_tmp_variable(lhs.value() + rhs, "+");
     graph->add_edge(result, lhs, 1.0, 0.0);
     return result;
 }
@@ -951,7 +1049,7 @@ HYPERGRAPH_INLINE Variable<T> operator-(const Variable<T>& lhs, const Variable<T
 {
     HyperGraph<T>* graph = lhs.graph();
 
-    const Variable<T> result = graph->new_tmp_variable(lhs.value() - rhs.value());
+    const Variable<T> result = graph->new_tmp_variable(lhs.value() - rhs.value(), "-");
     graph->add_edge(result, lhs, rhs, 1.0, -1.0, 0.0);
     return result;
 }
@@ -961,7 +1059,7 @@ HYPERGRAPH_INLINE Variable<T> operator-(const Variable<T>& lhs, const double rhs
 {
     HyperGraph<T>* graph = lhs.graph();
 
-    const Variable<T> result = graph->new_tmp_variable(lhs.value() - rhs);
+    const Variable<T> result = graph->new_tmp_variable(lhs.value() - rhs, "-");
     graph->add_edge(result, lhs, 1.0, 0.0);
     return result;
 }
@@ -971,7 +1069,7 @@ HYPERGRAPH_INLINE Variable<T> operator-(const double lhs, const Variable<T>& rhs
 {
     HyperGraph<T>* graph = rhs.graph();
 
-    const Variable<T> result = graph->new_tmp_variable(lhs - rhs.value());
+    const Variable<T> result = graph->new_tmp_variable(lhs - rhs.value(), "-");
     graph->add_edge(result, rhs, -1.0, 0.0);
     return result;
 }
@@ -995,7 +1093,7 @@ HYPERGRAPH_INLINE Variable<T> operator*(const Variable<T>& lhs, const Variable<T
 {
     HyperGraph<T>* graph = lhs.graph();
 
-    const Variable<T> result = graph->new_tmp_variable(lhs.value() * rhs.value());
+    const Variable<T> result = graph->new_tmp_variable(lhs.value() * rhs.value(), "*");
     graph->add_edge(result, lhs, rhs, rhs.value(), lhs.value(), 1.0);
     return result;
 }
@@ -1005,7 +1103,7 @@ HYPERGRAPH_INLINE Variable<T> operator*(const Variable<T>& lhs, const double rhs
 {
     HyperGraph<T>* graph = lhs.graph();
 
-    const Variable<T> result = graph->new_tmp_variable(lhs.value() * rhs);
+    const Variable<T> result = graph->new_tmp_variable(lhs.value() * rhs, "*");
     graph->add_edge(result, lhs, rhs, 0.0);
     return result;
 }
@@ -1044,7 +1142,7 @@ HYPERGRAPH_INLINE Variable<T> inv(const Variable<T>& x)
     const auto inv_x = 1.0 / x.value();
     const auto inv_x_sq = inv_x * inv_x;
     const auto inv_x_cu = inv_x_sq * inv_x;
-    const Variable<T> result = graph->new_tmp_variable(inv_x);
+    const Variable<T> result = graph->new_tmp_variable(inv_x, "inv");
     graph->add_edge(result, x, -inv_x_sq, 2.0 * inv_x_cu);
     return result;
 }
@@ -1116,7 +1214,7 @@ HYPERGRAPH_INLINE Variable<T> abs(const Variable<T>& x)
     } else {
         // Subgradient convention: abs(0) = 0, d|x|/dx = 0 at x = 0
         HyperGraph<T>* graph = x.graph();
-        const Variable<T> result = graph->new_tmp_variable(0.0);
+        const Variable<T> result = graph->new_tmp_variable(0.0, "abs");
         graph->add_edge(result, x, 0.0, 0.0);
         return result;
     }
@@ -1128,7 +1226,7 @@ HYPERGRAPH_INLINE Variable<T> square(const Variable<T>& x)
     HyperGraph<T>* graph = x.graph();
 
     const auto sq = x.value() * x.value();
-    const Variable<T> result = graph->new_tmp_variable(sq);
+    const Variable<T> result = graph->new_tmp_variable(sq, "square");
     graph->add_edge(result, x, 2.0 * x.value(), 2.0);
     return result;
 }
@@ -1151,7 +1249,7 @@ HYPERGRAPH_INLINE Variable<T> sqrt(const Variable<T>& x)
 
     const auto sqrt_x = sqrt(x.value());
     const auto inv_sqrt = 1.0 / sqrt_x;
-    const Variable<T> result = graph->new_tmp_variable(sqrt_x);
+    const Variable<T> result = graph->new_tmp_variable(sqrt_x, "sqrt");
     graph->add_edge(result, x, 0.5 * inv_sqrt, -0.25 * inv_sqrt / x.value());
     return result;
 }
@@ -1170,7 +1268,7 @@ HYPERGRAPH_INLINE Variable<T> pow(const Variable<T>& x, const double a)
     HyperGraph<T>* graph = x.graph();
 
     const auto pow_x = pow(x.value(), a);
-    const Variable<T> result = graph->new_tmp_variable(pow_x);
+    const Variable<T> result = graph->new_tmp_variable(pow_x, "pow");
     graph->add_edge(result, x, a * pow(x.value(), a - 1.0), a * (a - 1.0) * pow(x.value(), a - 2.0));
     return result;
 }
@@ -1183,7 +1281,7 @@ HYPERGRAPH_INLINE Variable<T> exp(const Variable<T>& x)
     HyperGraph<T>* graph = x.graph();
 
     const auto exp_x = exp(x.value());
-    const Variable<T> result = graph->new_tmp_variable(exp_x);
+    const Variable<T> result = graph->new_tmp_variable(exp_x, "exp");
     graph->add_edge(result, x, exp_x, exp_x);
     return result;
 }
@@ -1202,7 +1300,7 @@ HYPERGRAPH_INLINE Variable<T> log(const Variable<T>& x)
     HyperGraph<T>* graph = x.graph();
 
     const auto log_x = log(x.value());
-    const Variable<T> result = graph->new_tmp_variable(log_x);
+    const Variable<T> result = graph->new_tmp_variable(log_x, "log");
     const auto inv = 1.0 / x.value();
     graph->add_edge(result, x, inv, -inv * inv);
     return result;
@@ -1217,7 +1315,7 @@ HYPERGRAPH_INLINE Variable<T> cos(const Variable<T>& x)
     HyperGraph<T>* graph = x.graph();
 
     const auto cos_x = cos(x.value());
-    const Variable<T> result = graph->new_tmp_variable(cos_x);
+    const Variable<T> result = graph->new_tmp_variable(cos_x, "cos");
     graph->add_edge(result, x, -sin(x.value()), -cos_x);
     return result;
 }
@@ -1231,7 +1329,7 @@ HYPERGRAPH_INLINE Variable<T> sin(const Variable<T>& x)
     HyperGraph<T>* graph = x.graph();
 
     const auto sin_x = sin(x.value());
-    const Variable<T> result = graph->new_tmp_variable(sin_x);
+    const Variable<T> result = graph->new_tmp_variable(sin_x, "sin");
     graph->add_edge(result, x, cos(x.value()), -sin_x);
     return result;
 }
@@ -1254,7 +1352,7 @@ HYPERGRAPH_INLINE Variable<T> tan(const Variable<T>& x)
     const auto tan_x = tan(x.value());
     const auto sec = 1.0 / cos(x.value());
     const auto sec_sq = sec * sec;
-    const Variable<T> result = graph->new_tmp_variable(tan_x);
+    const Variable<T> result = graph->new_tmp_variable(tan_x, "tan");
     graph->add_edge(result, x, sec_sq, 2.0 * tan_x * sec_sq);
     return result;
 }
@@ -1274,7 +1372,7 @@ HYPERGRAPH_INLINE Variable<T> acos(const Variable<T>& x)
     HyperGraph<T>* graph = x.graph();
 
     const auto acos_x = acos(x.value());
-    const Variable<T> result = graph->new_tmp_variable(acos_x);
+    const Variable<T> result = graph->new_tmp_variable(acos_x, "acos");
     const auto tmp = 1.0 / (1.0 - x.value() * x.value());
     const auto neg_tmp_sqrt = -sqrt(tmp);
     graph->add_edge(result, x, neg_tmp_sqrt, x.value() * neg_tmp_sqrt * tmp);
@@ -1296,7 +1394,7 @@ HYPERGRAPH_INLINE Variable<T> asin(const Variable<T>& x)
     HyperGraph<T>* graph = x.graph();
 
     const auto asin_x = asin(x.value());
-    const Variable<T> result = graph->new_tmp_variable(asin_x);
+    const Variable<T> result = graph->new_tmp_variable(asin_x, "asin");
     const auto tmp = 1.0 / (1.0 - x.value() * x.value());
     const auto tmp_sqrt = sqrt(tmp);
     graph->add_edge(result, x, tmp_sqrt, x.value() * tmp_sqrt * tmp);
@@ -1311,7 +1409,7 @@ HYPERGRAPH_INLINE Variable<T> atan(const Variable<T>& x)
     HyperGraph<T>* graph = x.graph();
 
     const auto atan_x = atan(x.value());
-    const Variable<T> result = graph->new_tmp_variable(atan_x);
+    const Variable<T> result = graph->new_tmp_variable(atan_x, "atan");
     const auto tmp = 1 / (1 + x.value() * x.value());
     graph->add_edge(result, x, tmp, -2 * x.value() * tmp * tmp);
     return result;
@@ -1326,7 +1424,7 @@ HYPERGRAPH_INLINE Variable<T> sinh(const Variable<T>& x)
     HyperGraph<T>* graph = x.graph();
 
     const auto sinh_x = sinh(x.value());
-    const Variable<T> result = graph->new_tmp_variable(sinh_x);
+    const Variable<T> result = graph->new_tmp_variable(sinh_x, "sinh");
     graph->add_edge(result, x, cosh(x.value()), sinh_x);
     return result;
 }
@@ -1340,7 +1438,7 @@ HYPERGRAPH_INLINE Variable<T> cosh(const Variable<T>& x)
     HyperGraph<T>* graph = x.graph();
 
     const auto cosh_x = cosh(x.value());
-    const Variable<T> result = graph->new_tmp_variable(cosh_x);
+    const Variable<T> result = graph->new_tmp_variable(cosh_x, "cosh");
     graph->add_edge(result, x, sinh(x.value()), cosh_x);
     return result;
 }
@@ -1354,7 +1452,7 @@ HYPERGRAPH_INLINE Variable<T> tanh(const Variable<T>& x)
 
     const auto tanh_x = tanh(x.value());
     const auto sech_sq = 1.0 - tanh_x * tanh_x;
-    const Variable<T> result = graph->new_tmp_variable(tanh_x);
+    const Variable<T> result = graph->new_tmp_variable(tanh_x, "tanh");
     graph->add_edge(result, x, sech_sq, -2.0 * tanh_x * sech_sq);
     return result;
 }
@@ -1370,7 +1468,7 @@ HYPERGRAPH_INLINE Variable<T> asinh(const Variable<T>& x)
     const auto asinh_x = asinh(x.value());
     const auto tmp = 1.0 / (1.0 + x.value() * x.value());
     const auto tmp_sqrt = sqrt(tmp);
-    const Variable<T> result = graph->new_tmp_variable(asinh_x);
+    const Variable<T> result = graph->new_tmp_variable(asinh_x, "asinh");
     graph->add_edge(result, x, tmp_sqrt, -x.value() * tmp_sqrt * tmp);
     return result;
 }
@@ -1392,7 +1490,7 @@ HYPERGRAPH_INLINE Variable<T> acosh(const Variable<T>& x)
     const auto acosh_x = acosh(x.value());
     const auto tmp = 1.0 / (x.value() * x.value() - 1.0);
     const auto tmp_sqrt = sqrt(tmp);
-    const Variable<T> result = graph->new_tmp_variable(acosh_x);
+    const Variable<T> result = graph->new_tmp_variable(acosh_x, "acosh");
     graph->add_edge(result, x, tmp_sqrt, -x.value() * tmp_sqrt * tmp);
     return result;
 }
@@ -1413,7 +1511,7 @@ HYPERGRAPH_INLINE Variable<T> atanh(const Variable<T>& x)
     const auto atanh_x = atanh(x.value());
     const auto one_minus_x2 = 1.0 - x.value() * x.value();
     const auto tmp = 1.0 / one_minus_x2;
-    const Variable<T> result = graph->new_tmp_variable(atanh_x);
+    const Variable<T> result = graph->new_tmp_variable(atanh_x, "atanh");
     graph->add_edge(result, x, tmp, 2.0 * x.value() * tmp * tmp);
     return result;
 }
@@ -1460,7 +1558,7 @@ HYPERGRAPH_INLINE Variable<T> log2(const Variable<T>& x)
     const auto inv = 1.0 / x.value();
     const auto ln2 = log(2.0);
     const auto inv_ln2 = 1.0 / ln2;
-    const Variable<T> result = graph->new_tmp_variable(log2_x);
+    const Variable<T> result = graph->new_tmp_variable(log2_x, "log2");
     // d(log2(x))/dx = 1/(x·ln2), d²(log2(x))/dx² = -1/(x²·ln2)
     graph->add_edge(result, x, inv * inv_ln2, -inv * inv * inv_ln2);
     return result;
@@ -1484,7 +1582,7 @@ HYPERGRAPH_INLINE Variable<T> log10(const Variable<T>& x)
     const auto inv = 1.0 / x.value();
     const auto ln10 = log(10.0);
     const auto inv_ln10 = 1.0 / ln10;
-    const Variable<T> result = graph->new_tmp_variable(log10_x);
+    const Variable<T> result = graph->new_tmp_variable(log10_x, "log10");
     // d(log10(x))/dx = 1/(x·ln10), d²(log10(x))/dx² = -1/(x²·ln10)
     graph->add_edge(result, x, inv * inv_ln10, -inv * inv * inv_ln10);
     return result;
@@ -1505,7 +1603,7 @@ HYPERGRAPH_INLINE Variable<T> erf(const Variable<T>& x)
     const auto exp_neg_x2 = exp(-x.value() * x.value());
     const auto first_deriv = two_over_sqrt_pi * exp_neg_x2;
     const auto second_deriv = -2.0 * x.value() * first_deriv;
-    const Variable<T> result = graph->new_tmp_variable(erf_x);
+    const Variable<T> result = graph->new_tmp_variable(erf_x, "erf");
     graph->add_edge(result, x, first_deriv, second_deriv);
     return result;
 }
@@ -1526,7 +1624,7 @@ HYPERGRAPH_INLINE Variable<T> erfc(const Variable<T>& x)
     const auto exp_neg_x2 = exp(-x.value() * x.value());
     const auto first_deriv = -two_over_sqrt_pi * exp_neg_x2;
     const auto second_deriv = 2.0 * x.value() * two_over_sqrt_pi * exp_neg_x2;
-    const Variable<T> result = graph->new_tmp_variable(erfc_x);
+    const Variable<T> result = graph->new_tmp_variable(erfc_x, "erfc");
     graph->add_edge(result, x, first_deriv, second_deriv);
     return result;
 }
@@ -1545,7 +1643,7 @@ HYPERGRAPH_INLINE Variable<T> sigmoid(const Variable<T>& x)
     const auto first_deriv = sig * (1.0 - sig);
     // d²(sigmoid)/dx² = sigmoid · (1 - sigmoid) · (1 - 2·sigmoid)
     const auto second_deriv = first_deriv * (1.0 - 2.0 * sig);
-    const Variable<T> result = graph->new_tmp_variable(sig);
+    const Variable<T> result = graph->new_tmp_variable(sig, "sigmoid");
     graph->add_edge(result, x, first_deriv, second_deriv);
     return result;
 }
@@ -1566,7 +1664,7 @@ HYPERGRAPH_INLINE Variable<T> softplus(const Variable<T>& x)
     const auto sig = exp_x / (1.0 + exp_x);
     // d²(softplus)/dx² = sigmoid(x)·(1-sigmoid(x))
     const auto second_deriv = sig * (1.0 - sig);
-    const Variable<T> result = graph->new_tmp_variable(softplus_x);
+    const Variable<T> result = graph->new_tmp_variable(softplus_x, "softplus");
     graph->add_edge(result, x, sig, second_deriv);
     return result;
 }
@@ -1577,12 +1675,12 @@ HYPERGRAPH_INLINE Variable<T> min(const Variable<T>& x, const Variable<T>& y)
     // Subgradient convention: at x == y, derivative w.r.t. x is 1, w.r.t. y is 0
     if (x.value() <= y.value()) {
         HyperGraph<T>* graph = x.graph();
-        const Variable<T> result = graph->new_tmp_variable(x.value());
+        const Variable<T> result = graph->new_tmp_variable(x.value(), "min");
         graph->add_edge(result, x, y, 1.0, 0.0, 0.0);
         return result;
     } else {
         HyperGraph<T>* graph = y.graph();
-        const Variable<T> result = graph->new_tmp_variable(y.value());
+        const Variable<T> result = graph->new_tmp_variable(y.value(), "min");
         graph->add_edge(result, x, y, 0.0, 1.0, 0.0);
         return result;
     }
@@ -1594,12 +1692,12 @@ HYPERGRAPH_INLINE Variable<T> max(const Variable<T>& x, const Variable<T>& y)
     // Subgradient convention: at x == y, derivative w.r.t. x is 1, w.r.t. y is 0
     if (x.value() >= y.value()) {
         HyperGraph<T>* graph = x.graph();
-        const Variable<T> result = graph->new_tmp_variable(x.value());
+        const Variable<T> result = graph->new_tmp_variable(x.value(), "max");
         graph->add_edge(result, x, y, 1.0, 0.0, 0.0);
         return result;
     } else {
         HyperGraph<T>* graph = y.graph();
-        const Variable<T> result = graph->new_tmp_variable(y.value());
+        const Variable<T> result = graph->new_tmp_variable(y.value(), "max");
         graph->add_edge(result, x, y, 0.0, 1.0, 0.0);
         return result;
     }
